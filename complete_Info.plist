@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleExecutable</key>
+    <string>WeLabelDataRecorder</string>
+    <key>CFBundleIconFile</key>
+    <string></string>
+    <key>CFBundleIdentifier</key>
+    <string>com.labeltool.welabeldatarecorder</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>WeLabelDataRecorder</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1.0</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>11.0</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2023. All rights reserved.</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>NSHighResolutionCapable</key>
+    <true/>
+    <key>NSSupportsAutomaticGraphicsSwitching</key>
+    <true/>
+    
+    <!-- Только необходимые разрешения для работы с экраном и вводом -->
+    <key>NSAppleEventsUsageDescription</key>
+    <string>Приложение нуждается в доступе к управлению другими приложениями для записи их взаимодействия с интерфейсом.</string>
+    
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>Приложение требует разрешения для записи экрана, чтобы фиксировать взаимодействия с интерфейсом.</string>
+    
+    <key>NSAccessibilityUsageDescription</key>
+    <string>Приложение нуждается в доступе к Accessibility для записи информации об UI элементах и отслеживания нажатий клавиш и мыши.</string>
+    
+    <!-- Требуется для внутренних механизмов macOS -->
+    <key>NSCameraUsageDescription</key>
+    <string>Не используется, но требуется системой.</string>
+    
+    <!-- Дополнительные разрешения файловой системы для сохранения записей -->
+    <key>NSDesktopFolderUsageDescription</key>
+    <string>Необходим доступ к рабочему столу для сохранения записей.</string>
+    
+    <key>NSDocumentsFolderUsageDescription</key>
+    <string>Необходим доступ к документам для сохранения записей.</string>
+    
+    <key>NSDownloadsFolderUsageDescription</key>
+    <string>Необходим доступ к папке загрузок для сохранения записей.</string>
+    
+    <!-- Настройки приложения -->
+    <key>LSBackgroundOnly</key>
+    <false/>
+    <key>LSUIElement</key>
+    <false/>
+    <key>NSSupportsAutomaticTermination</key>
+    <true/>
+    <key>NSSupportsSuddenTermination</key>
+    <true/>
+</dict>
+</plist> 

@@ -1,46 +1,45 @@
 #!/bin/bash
 
-# Script to build a full app bundle with correct entitlements
+# Скрипт для создания полноценного .app файла WeLabelDataRecorder
 
-set -e  # Exit on error
+echo "Building WeLabelDataRecorder App..."
 
-echo "=== Building WeLabelDataRecorder App ==="
+# Устанавливаем переменные
+ROOT_DIR=$(pwd)
+BUILD_DIR=${ROOT_DIR}/.build/debug
+APP_BUNDLE=${ROOT_DIR}/WeLabelDataRecorder.app
 
-# Directory setup
-ROOT_DIR="$(pwd)"
-BUILD_DIR="${ROOT_DIR}/.build"
-APP_BUNDLE="${ROOT_DIR}/WeLabelDataRecorder.app"
+# Удаляем старый app bundle, если существует
+echo "Removing old app bundle if exists..."
+if [ -d "${APP_BUNDLE}" ]; then
+    rm -rf "${APP_BUNDLE}"
+fi
 
-# Remove old app bundle if it exists
-echo "=== Removing old app bundle if exists ==="
-rm -rf "${APP_BUNDLE}"
+# Компилируем Swift пакет
+echo "Building Swift package..."
+swift build
 
-# Build the Swift package
-echo "=== Building Swift package ==="
-swift build -c release
-
-# Create app bundle structure
-echo "=== Creating App Bundle ==="
+# Создаем структуру app bundle
+echo "Creating app bundle structure..."
 mkdir -p "${APP_BUNDLE}/Contents/MacOS"
 mkdir -p "${APP_BUNDLE}/Contents/Resources"
 
-# Copy binary
-echo "=== Copying binary ==="
-cp "${BUILD_DIR}/release/WeLabelDataRecorder" "${APP_BUNDLE}/Contents/MacOS/"
+# Копируем исполняемый файл
+echo "Copying binary..."
+cp "${BUILD_DIR}/WeLabelDataRecorder" "${APP_BUNDLE}/Contents/MacOS/"
 chmod +x "${APP_BUNDLE}/Contents/MacOS/WeLabelDataRecorder"
 
-# Copy Info.plist
-echo "=== Copying Info.plist ==="
-cp "${ROOT_DIR}/fixed_Info.plist" "${APP_BUNDLE}/Contents/Info.plist"
+# Копируем complete_Info.plist вместо создания нового
+echo "Copying Info.plist..."
+cp "${ROOT_DIR}/complete_Info.plist" "${APP_BUNDLE}/Contents/Info.plist"
 
-# Create PkgInfo
-echo "=== Creating PkgInfo ==="
-echo "APPL????" > "${APP_BUNDLE}/Contents/PkgInfo"
+# Копируем entitlements файл
+echo "Copying entitlements file..."
+cp "${ROOT_DIR}/WeLabelDataRecorder/Sources/WeLabelDataRecorder.entitlements" "${APP_BUNDLE}/Contents/Resources/"
 
-# Sign with entitlements
-echo "=== Signing with entitlements ==="
+# Подписываем приложение с entitlements
+echo "Signing with entitlements..."
 codesign --force --deep --sign - --entitlements "${ROOT_DIR}/WeLabelDataRecorder/Sources/WeLabelDataRecorder.entitlements" "${APP_BUNDLE}"
 
-echo "=== App Build Complete ==="
-echo "App bundle created at: ${APP_BUNDLE}"
-echo "To run the app, execute: open '${APP_BUNDLE}'" 
+echo "App bundle created at ${APP_BUNDLE}"
+echo "Run the app with: open '${APP_BUNDLE}'" 
