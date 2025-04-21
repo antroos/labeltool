@@ -2,24 +2,23 @@ import Foundation
 import AppKit
 import AVFoundation
 
-class ScreenCapture {
+class ScreenCapture: NSObject, AVCaptureFileOutputRecordingDelegate {
     private var outputURL: URL?
     private var captureSession: AVCaptureSession?
     private var captureOutput: AVCaptureMovieFileOutput?
     
     // Function to capture a screenshot
     func captureScreenshot() -> NSImage? {
-        guard let displayID = CGMainDisplayID() else {
-            print("Failed to get main display ID")
-            return nil
-        }
+        // CGMainDisplayID doesn't return an optional, so don't use guard let
+        let displayID = CGMainDisplayID()
         
         guard let image = CGDisplayCreateImage(displayID) else {
             print("Failed to create image from display")
             return nil
         }
         
-        let nsImage = NSImage(cgImage: image, size: NSSize(width: CGImageGetWidth(image), height: CGImageGetHeight(image)))
+        // Use image.width and image.height instead of CGImageGetWidth/Height
+        let nsImage = NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
         return nsImage
     }
     
@@ -84,7 +83,8 @@ class ScreenCapture {
         
         // Start recording to file
         if let captureOutput = captureOutput, !captureOutput.isRecording {
-            captureOutput.startRecording(to: outputURL, recordingDelegate: nil)
+            // Use self as the delegate since we've conformed to AVCaptureFileOutputRecordingDelegate
+            captureOutput.startRecording(to: outputURL, recordingDelegate: self)
             return true
         }
         
@@ -102,5 +102,15 @@ class ScreenCapture {
         captureSession?.stopRunning()
         captureSession = nil
         outputURL = nil
+    }
+    
+    // MARK: - AVCaptureFileOutputRecordingDelegate
+    
+    func fileOutput(_ output: AVCaptureFileOutput, didFinishRecordingTo outputFileURL: URL, from connections: [AVCaptureConnection], error: Error?) {
+        if let error = error {
+            print("Error recording to file: \(error)")
+        } else {
+            print("Successfully finished recording to \(outputFileURL.path)")
+        }
     }
 } 

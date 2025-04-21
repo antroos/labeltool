@@ -193,4 +193,15 @@ struct SessionMetadata: Codable {
     let screenshotCount: Int
     let exportDate: Date = Date()
     let version: String = "1.0"
+    
+    // Add CodingKeys to handle properties with default values
+    enum CodingKeys: String, CodingKey {
+        case id
+        case startTime
+        case endTime
+        case interactionCount
+        case screenshotCount
+        case exportDate
+        case version
+    }
 } 

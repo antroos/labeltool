@@ -80,7 +80,7 @@ class MainViewController: NSViewController, RecordingManagerDelegate {
             try RecordingManager.shared.startRecording()
             
             // Start a new session
-            SessionManager.shared.startNewSession()
+            let _ = SessionManager.shared.startNewSession()
             
             // Update UI will be handled by delegate methods
         } catch {

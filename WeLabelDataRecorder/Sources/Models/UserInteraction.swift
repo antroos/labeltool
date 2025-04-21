@@ -24,6 +24,15 @@ struct MouseClickInteraction: UserInteraction, Codable {
     let position: NSPoint
     let button: MouseButton
     let clickCount: Int
+    
+    // Add CodingKeys to handle the interactionType property
+    enum CodingKeys: String, CodingKey {
+        case timestamp
+        case interactionType
+        case position
+        case button
+        case clickCount
+    }
 }
 
 // Represents a mouse move event
@@ -32,6 +41,14 @@ struct MouseMoveInteraction: UserInteraction, Codable {
     let interactionType: InteractionType = .mouseMove
     let fromPosition: NSPoint
     let toPosition: NSPoint
+    
+    // Add CodingKeys to handle the interactionType property
+    enum CodingKeys: String, CodingKey {
+        case timestamp
+        case interactionType
+        case fromPosition
+        case toPosition
+    }
 }
 
 // Represents a mouse scroll event
@@ -41,6 +58,15 @@ struct MouseScrollInteraction: UserInteraction, Codable {
     let position: NSPoint
     let deltaX: CGFloat
     let deltaY: CGFloat
+    
+    // Add CodingKeys to handle the interactionType property
+    enum CodingKeys: String, CodingKey {
+        case timestamp
+        case interactionType
+        case position
+        case deltaX
+        case deltaY
+    }
 }
 
 // Represents a key press event
@@ -49,14 +75,28 @@ struct KeyInteraction: UserInteraction, Codable {
     let interactionType: InteractionType
     let keyCode: UInt16
     let characters: String?
-    let modifiers: NSEvent.ModifierFlags
+    private let modifierFlagsRawValue: UInt // Store the raw value of NSEvent.ModifierFlags
+    
+    // Computed property to convert the raw value back to NSEvent.ModifierFlags
+    var modifiers: NSEvent.ModifierFlags {
+        return NSEvent.ModifierFlags(rawValue: modifierFlagsRawValue)
+    }
     
     init(timestamp: Date, isKeyDown: Bool, keyCode: UInt16, characters: String?, modifiers: NSEvent.ModifierFlags) {
         self.timestamp = timestamp
         self.interactionType = isKeyDown ? .keyDown : .keyUp
         self.keyCode = keyCode
         self.characters = characters
-        self.modifiers = modifiers
+        self.modifierFlagsRawValue = modifiers.rawValue
+    }
+    
+    // Custom CodingKeys to map the private property
+    enum CodingKeys: String, CodingKey {
+        case timestamp
+        case interactionType
+        case keyCode
+        case characters
+        case modifierFlagsRawValue
     }
 }
 
@@ -66,6 +106,14 @@ struct ScreenshotInteraction: UserInteraction, Codable {
     let interactionType: InteractionType = .screenshot
     let imageFileName: String
     let screenBounds: CGRect
+    
+    // Add CodingKeys to handle the interactionType property
+    enum CodingKeys: String, CodingKey {
+        case timestamp
+        case interactionType
+        case imageFileName
+        case screenBounds
+    }
 }
 
 // Mouse button types
