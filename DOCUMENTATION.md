@@ -29,6 +29,114 @@ WeLabelDataRecorder is a macOS application designed to capture and record user i
    - Camera access (if needed)
    - Microphone access (if needed)
 
+## Complete Application Workflow
+
+WeLabelDataRecorder follows a comprehensive workflow for capturing, analyzing, and exporting UI interactions:
+
+### 1. Application Launch
+
+- **Normal Mode**: The application starts with a graphical interface showing recording controls
+  - Creates a main window and a status bar item for easy access
+  - Sets up permission checks and verification
+  
+- **Test Export Mode**: Can be launched with the `--test-export <path>` parameter
+  - Creates a sample session with predefined interactions
+  - Exports to all supported formats in the specified directory
+  - Ideal for testing and demonstration purposes
+
+### 2. Recording Process
+
+- When "Start Recording" is clicked, the app:
+  - Verifies necessary permissions
+  - Initializes a new recording session
+  - Starts event monitors for mouse and keyboard
+  - Begins periodic screenshot capture (default: every 1 second)
+
+- During recording, the app captures:
+  - **Mouse Events**: Click, movement, scroll
+  - **Keyboard Events**: Key presses, combinations
+  - **UI Element Interactions**: When the user interacts with UI elements
+  - **Screenshots**: Regular intervals and on significant events
+
+### 3. UI Element Relationship Analysis
+
+For each UI element interaction, the `UIElementRelationshipAnalyzer` performs:
+
+- **Hierarchy Analysis**: Examines the DOM-like structure of the UI
+  - Parent-child relationships
+  - Sibling relationships
+  - Container relationships (grandparents, etc.)
+
+- **Spatial Analysis**: Examines physical layout
+  - Position relationships (above, below, left, right)
+  - Containment (elements inside other elements)
+  - Overlap detection
+  - Distance calculations
+
+- **Functional Analysis**: Examines interaction patterns
+  - Label-field associations
+  - Button-form relationships
+  - Control-container relationships
+  - Action target identification
+
+- **Logical Analysis**: Examines semantic connections
+  - Elements with similar naming patterns
+  - Elements that form logical groups
+  - Sequential elements (steps, forms)
+  - Potentially related elements based on behavior
+
+Each relationship is assigned a relevance score (0.0-1.0) to indicate its importance, and relationships are sorted by this score.
+
+### 4. Session Management
+
+- When "Stop Recording" is clicked:
+  - All monitoring components are stopped
+  - The session is finalized with an end timestamp
+  - Session data is saved to memory and disk
+  - The UI updates to show export options
+
+- Sessions are managed by the `SessionManager` which:
+  - Maintains references to current and previous sessions
+  - Handles saving/loading sessions from disk
+  - Provides methods for creating and ending sessions
+  - Facilitates export operations
+
+### 5. Data Export
+
+- When "Export Last Session" is clicked:
+  - User selects an export format and destination
+  - `ExportManager` processes the session data
+  - Creates a structured directory with all necessary files
+  - Notifies when export is complete
+
+- Export formats include:
+
+  - **JSON**: Raw data with full details
+    - `metadata.json`: Basic session information
+    - `interactions.json`: All user interactions
+    - `/screenshots`: Directory with all captured images
+    - `/elements`: Directory with UI element hierarchies and relationships
+
+  - **COCO**: Computer Vision format
+    - `instances.json`: COCO-format annotation file
+    - `/images`: Directory with all captured images
+    - Categories for different UI element types
+    - Bounding box coordinates and attributes
+
+  - **YOLO**: Object Detection format
+    - `classes.txt`: UI element class definitions
+    - `/images`: Directory with all captured images
+    - `/labels`: Directory with YOLO-format annotation files
+    - Normalized coordinates for UI elements
+
+### 6. Visualization
+
+- Relationship data can be visualized as graphs:
+  - Generated DOT files describe UI element relationships
+  - Can be converted to images using GraphViz
+  - Color-coding indicates relationship types
+  - Supports interactive exploration of complex UI structures
+
 ## Permissions Configuration Guide
 
 WeLabelDataRecorder requires specific system permissions to function properly. This section details how these permissions are configured and how to troubleshoot permission-related issues.
@@ -142,126 +250,352 @@ log show --predicate 'process == "WeLabelDataRecorder"' --last 2m | grep -i "err
 
 If no permission errors appear, the application is correctly configured.
 
-## Usage Guide
+## UI Element Relationship Analyzer
 
-### Starting a Recording Session
+The UI Element Relationship Analyzer is a core component of the WeLabelDataRecorder application that identifies, analyzes, and scores relationships between UI elements. This component is critical for generating rich datasets that capture not just the visual appearance of UIs, but their underlying structure and semantic connections.
 
-1. Launch the application
-2. Click on the status bar icon or open the main window
-3. Configure recording settings:
-   - Recording area (full screen or custom region)
-   - Frame rate and quality
-   - Include/exclude specific applications
-4. Click "Start Recording" to begin
+### Types of Relationships Analyzed
 
-### During Recording
+1. **Hierarchical Relationships**
+   - **Parent**: The containing element directly above in the hierarchy
+   - **Child**: Elements contained within the current element
+   - **Sibling**: Elements that share the same parent
+   - **Container**: Elements higher up in the hierarchy (grandparents, etc.)
 
-- A status indicator will show that recording is in progress
-- User interactions will be automatically tracked
-- Optionally add manual annotations or markers during recording
+2. **Spatial Relationships**
+   - **Above/Below**: Elements positioned vertically relative to each other
+   - **Left/Right**: Elements positioned horizontally relative to each other
+   - **Contains/Contained**: Elements that spatially contain or are contained by others
+   - **Overlapping**: Elements that visually overlap but don't fully contain each other
 
-### Ending a Recording Session
+3. **Functional Relationships**
+   - **Controls**: Buttons or elements that affect other elements
+   - **Describes**: Labels that describe other UI elements
+   - **Complements**: Elements that work together (like form fields and submit buttons)
+   - **Acts On**: Elements that trigger actions on other elements
 
-1. Click "Stop Recording" in the menu bar or main window
-2. Provide a name for the session
-3. Select where to save the session data
+4. **Logical Relationships**
+   - **Group**: Elements that form a logical group
+   - **Sequence**: Elements used in a sequential workflow
+   - **Alternative**: Elements that represent alternatives to each other
+   - **Parallel**: Elements that represent parallel options
 
-### Exporting Data
+### Relationship Scoring System
 
-1. Select a recorded session from the sessions list
-2. Choose Export from the menu
-3. Select an export format (JSON, COCO, YOLO)
-4. Choose a destination folder
-5. Click "Export" to generate the dataset
+Each identified relationship is assigned a relevance score between 0.0 and 1.0:
 
-## Accessibility Integration
+- **0.9 - 1.0**: Critical relationships (direct parent, primary label)
+- **0.7 - 0.9**: Strong relationships (direct children, closely positioned elements)
+- **0.5 - 0.7**: Moderate relationships (siblings, functionally related elements)
+- **0.3 - 0.5**: Weak relationships (distant elements, potential connections)
+- **< 0.3**: Not reported (too weak to be relevant)
 
-WeLabelDataRecorder leverages macOS's Accessibility API to:
+Scores are calculated based on multiple factors:
+- Proximity (closer elements score higher)
+- Hierarchy level (direct relationships score higher)
+- Visual properties (similar styling scores higher)
+- Naming patterns (similar naming scores higher)
+- Common UI patterns (recognized patterns score higher)
 
-- Identify UI elements on screen
-- Track focus changes
-- Record element properties (role, title, identifier, etc.)
-- Build element hierarchies
-- Monitor state changes
+### Implementation
 
-## Relationship Analysis System
+The analyzer is implemented in the `UIElementRelationshipAnalyzer` class:
 
-The application analyzes relationships between UI elements using multiple strategies:
-
-1. **Hierarchy Relationships**: Based on the UI element tree structure
-   - Parent/child relationships
-   - Sibling relationships
-
-2. **Spatial Relationships**: Based on screen positioning
-   - Containment (element within another)
-   - Overlapping elements
-   - Proximity-based relationships
-
-3. **Functional Relationships**: Based on interaction patterns
-   - Controls that affect other elements
-   - Label-to-control associations
-
-4. **Logical Relationships**: Based on semantic meaning
-   - Elements that form logical groups
-   - Sequential flows (wizards, forms)
-
-## Troubleshooting
-
-### Permission Issues
-
-If the application doesn't have full functionality:
-
-1. Check System Preferences > Security & Privacy > Privacy
-2. Ensure WeLabelDataRecorder is enabled under:
-   - Screen Recording
-   - Accessibility
-   - Camera (if needed)
-   - Microphone (if needed)
-
-### Recording Failures
-
-If recordings fail to start or stop properly:
-
-1. Restart the application
-2. Check available disk space
-3. Verify no other screen recording applications are running
-
-## Privacy Considerations
-
-- All data is stored locally on your system
-- No automatic data transmission to external servers
-- Be aware of sensitive information in your recordings
-- Review screenshots before sharing datasets
-
-## Advanced Usage
-
-### Command Line Interface
-
-For automation and integration with other tools:
-
-```
-WeLabelDataRecorderCLI [options]
+```swift
+class UIElementRelationshipAnalyzer {
+    func analyzeRelationships(for targetElement: UIElementInfo) -> [RelatedElement] {
+        var relatedElements: [RelatedElement] = []
+        
+        // Add hierarchical relationships
+        relatedElements.append(contentsOf: findHierarchyRelationships(for: targetElement))
+        
+        // Add spatial relationships
+        relatedElements.append(contentsOf: findSpatialRelationships(for: targetElement))
+        
+        // Add functional relationships
+        relatedElements.append(contentsOf: findFunctionalRelationships(for: targetElement))
+        
+        // Add logical relationships
+        relatedElements.append(contentsOf: findLogicalRelationships(for: targetElement))
+        
+        // Sort by relevance
+        return relatedElements.sorted { $0.relevanceScore > $1.relevanceScore }
+    }
+    
+    // Individual analysis methods for each relationship type...
+}
 ```
 
-Options:
-- `--record [duration]`: Start recording for specified duration
-- `--export [session_id] [format]`: Export a specific session
-- `--list-sessions`: Show all available sessions
-- `--config [path]`: Use custom configuration file
+### Visualization Output
 
-## Roadmap
+The analyzer can export relationships in DOT format for visualization:
 
-Planned features for future releases:
+```
+digraph UIElementRelationships {
+  // Graph of UI element relationships
+  node [shape=box style=filled];
 
-- Real-time data labeling during recording
-- Cloud integration for dataset sharing
-- Custom annotation tools
-- Advanced filtering options for exports
-- Batch processing capabilities
+  // Central element
+  "nameField" [label="AXTextField", fillcolor="lightblue"];
 
-## Support
+  // Related elements
+  // Group: spatial
+  "emailField" [label="AXTextField"];
+  "nameField" -> "emailField" [label="spatial.below Distance: 50 px", color="blue", style="dashed"];
+  
+  // Group: parent
+  "mainForm" [label="AXGroup Form"];
+  "mainForm" -> "nameField" [label="parent", color="darkgreen", style="solid"];
+}
+```
+
+## Export Formats in Detail
+
+WeLabelDataRecorder supports multiple export formats to accommodate different use cases for the captured data.
+
+### JSON Format
+
+The JSON export is the most comprehensive format, containing full details about the recording session:
+
+- **Structure**:
+  - `metadata.json`: Session information (ID, timestamps, counts)
+  - `interactions.json`: Array of all interactions with timestamps and details
+  - `/screenshots`: Directory containing all captured images
+  - `/elements`: Directory containing UI element hierarchies and relationship data
+  
+- **Sample metadata.json**:
+  ```json
+  {
+    "id": "session-20230415-123456",
+    "startTime": 1681558345.123,
+    "endTime": 1681558400.456,
+    "interactionCount": 42,
+    "screenshotCount": 15,
+    "uiElementCount": 23,
+    "exportDate": 1681558410.789,
+    "version": "1.0",
+    "hierarchySupport": true
+  }
+  ```
+
+- **Sample interactions.json** (simplified):
+  ```json
+  [
+    {
+      "type": "mouseClick",
+      "timestamp": 1681558347.123,
+      "x": 500,
+      "y": 300,
+      "button": 0,
+      "clickCount": 1
+    },
+    {
+      "type": "screenshot",
+      "timestamp": 1681558348.234,
+      "filename": "screenshot_001.png",
+      "width": 1920,
+      "height": 1080
+    },
+    {
+      "type": "uiElement",
+      "timestamp": 1681558350.345,
+      "elementRole": "button",
+      "elementTitle": "Submit",
+      "x": 650,
+      "y": 400,
+      "elementHierarchyFile": "element_15.json",
+      "elementRelationshipsFile": "element_15_relationships.json",
+      "action": "click"
+    }
+  ]
+  ```
+
+### COCO Format
+
+The COCO (Common Objects in Context) format is widely used in computer vision and object detection:
+
+- **Structure**:
+  - `instances.json`: COCO-format annotation file
+  - `/images`: Directory containing numbered screenshots
+  
+- **Sample instances.json** (simplified):
+  ```json
+  {
+    "info": {
+      "version": "1.0",
+      "description": "WeLabelDataRecorder Session Export",
+      "contributor": "WeLabelDataRecorder",
+      "date_created": "2023-04-15T12:40:10Z"
+    },
+    "images": [
+      {
+        "id": 0,
+        "width": 1920,
+        "height": 1080,
+        "file_name": "000000.png",
+        "license": 0,
+        "date_captured": "2023-04-15T12:34:08Z"
+      }
+    ],
+    "annotations": [
+      {
+        "id": 0,
+        "image_id": 0,
+        "category_id": 1,
+        "bbox": [600, 380, 100, 40],
+        "area": 4000,
+        "iscrowd": 0,
+        "attributes": {
+          "role": "button",
+          "title": "Submit",
+          "enabled": true,
+          "has_focus": true
+        }
+      }
+    ],
+    "categories": [
+      {
+        "id": 1,
+        "name": "button",
+        "supercategory": "ui_element"
+      },
+      {
+        "id": 2,
+        "name": "checkbox",
+        "supercategory": "ui_element"
+      }
+    ]
+  }
+  ```
+
+### YOLO Format
+
+The YOLO (You Only Look Once) format is optimized for real-time object detection:
+
+- **Structure**:
+  - `classes.txt`: List of class names for UI elements
+  - `/images`: Directory containing numbered screenshots
+  - `/labels`: Directory containing annotation files for each image
+  
+- **Sample classes.txt**:
+  ```
+  button
+  checkbox
+  text_field
+  menu
+  menu_item
+  window
+  scroll_bar
+  other
+  ```
+  
+- **Sample label file (000000.txt)**:
+  ```
+  0 0.338542 0.37037 0.052083 0.037037
+  2 0.234375 0.259259 0.104167 0.037037
+  ```
+
+  Each line contains: `class_id center_x center_y width height`
+  where coordinates are normalized to [0,1] range.
+
+## Test Export Mode
+
+For quick testing and demonstration, WeLabelDataRecorder includes a test export mode:
+
+```bash
+./WeLabelDataRecorder.app/Contents/MacOS/WeLabelDataRecorder --test-export /path/to/export
+```
+
+This mode:
+1. Creates a synthetic recording session with sample data
+   - Mouse clicks at predefined positions
+   - A test screenshot
+   - UI element interactions with relationship data
+2. Exports this session in all supported formats
+3. Opens the export directory for inspection
+
+A convenience script `run_test_export.sh` is provided:
+```bash
+#!/bin/bash
+EXPORT_DIR="$(pwd)/test_export_$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$EXPORT_DIR"
+./WeLabelDataRecorder.app/Contents/MacOS/WeLabelDataRecorder --test-export "$EXPORT_DIR"
+open "$EXPORT_DIR"
+```
+
+## UI Relationship Visualization
+
+WeLabelDataRecorder includes a powerful visualization feature for UI element relationships using the DOT graph description language. This feature allows developers and researchers to:
+
+1. **Visualize UI Relationships**: Generate graphical representations of how UI elements relate to each other
+2. **Analyze Interface Structure**: Understand hierarchical, spatial, and functional relationships
+3. **Export for Documentation**: Create visual documentation of UI architecture
+
+### Generating Relationship Graphs
+
+The application automatically generates `.dot` files that can be viewed with GraphViz or similar tools:
+
+```
+digraph UIElementRelationships {
+  // UI element relationship graph
+  node [shape=box style=filled];
+
+  // Central element
+  "nameField" [label="AXTextField", fillcolor="lightblue"];
+
+  // Related elements
+  // Group: parent
+  "mainForm" [label="AXGroup Form"];
+  "mainForm" -> "nameField" [label="parent", color="darkgreen", style="solid", weight=9, dir="back"];
+
+  // Group: spatial
+  "emailField" [label="AXTextField"];
+  "nameField" -> "emailField" [label="spatial.below Distance: 50 px", color="blue", style="dashed", weight=8, dir="both"];
+  "nameLabel" [label="AXStaticText Name"];
+  "nameField" -> "nameLabel" [label="spatial.leftOf Distance: 160 px", color="blue", style="dashed", weight=4, dir="both"];
+}
+```
+
+### Visualization Color Coding
+
+The relationship graphs use a consistent color scheme to indicate relationship types:
+- **Green**: Hierarchical relationships (parent/child)
+- **Blue**: Spatial relationships (above, below, left, right)
+- **Orange**: Functional relationships
+- **Purple**: Logical relationships
+
+### Using the Visualization
+
+To generate and view relationship visualizations:
+
+1. Export a recording session with the "Include Visualizations" option enabled
+2. Open the resulting `.dot` files with GraphViz:
+   ```
+   dot -Tpng ui_relationships.dot -o ui_relationships.png
+   ```
+3. Analyze the generated image to understand UI element relationships
+
+This feature is especially valuable for:
+- Accessibility testing and improvements
+- UI automation development
+- Interface design analysis
+- Training machine learning models for UI understanding
+
+## Support and Development
 
 For issues, questions, or feature requests:
 
 - Check the GitHub repository Issues section
 - Contact the development team at support@welabeldatarecorder.example.com
+
+## Contributing
+
+We welcome contributions to the WeLabelDataRecorder project:
+
+1. Fork the repository
+2. Create a feature branch
+3. Implement your changes
+4. Write tests for your implementation
+5. Submit a pull request
+
+Please follow the code style guidelines provided in the repository.

@@ -1,0 +1,21 @@
+digraph UIElementRelationships {
+  // График отношений между UI элементами
+  node [shape=box style=filled];
+
+  // Центральный элемент
+  "nameField" [label="AXTextField", fillcolor="lightblue"];
+
+  // Связанные элементы
+  // Группа: spatial
+  "emailField" [label="AXTextField"];
+  "nameField" -> "emailField" [label="spatial.below Distance: 50 px", color="blue", style="dashed", weight=8, dir="both"];
+  "nameLabel" [label="AXStaticText\n"Name:""];
+  "nameField" -> "nameLabel" [label="spatial.leftOf Distance: 160 px", color="blue", style="dashed", weight=4, dir="both"];
+  "emailLabel" [label="AXStaticText\n"Email:""];
+  "nameField" -> "emailLabel" [label="spatial.leftOf Distance: 167 px", color="blue", style="dashed", weight=4, dir="both"];
+
+  // Группа: parent
+  "mainForm" [label="AXGroup\n"Form""];
+  "mainForm" -> "nameField" [label="parent", color="darkgreen", style="solid", weight=9, dir="back"];
+
+}
