@@ -1,226 +1,267 @@
-# WeLabelDataRecorder - Техническая документация
+# WeLabelDataRecorder Documentation
 
-## Общий обзор
-WeLabelDataRecorder - это macOS приложение, предназначенное для записи активности экрана и пользовательских взаимодействий с целью создания маркированных (labeled) наборов данных для обучения моделей AI. Приложение записывает движения мыши, клики, ввод с клавиатуры и делает скриншоты в процессе работы пользователя, а также собирает информацию о UI элементах с использованием системных API доступности (Accessibility API).
+## Overview
 
-## Архитектура приложения
+WeLabelDataRecorder is a macOS application designed to capture and record user interactions with the system UI, creating labeled datasets for machine learning applications focused on user interface analysis and automation. The tool records screen captures, accessibility information, and user interactions to generate comprehensive datasets that can be exported in various formats.
 
-### Основные компоненты
-1. **AppDelegate** - точка входа в приложение, отвечает за инициализацию и управление жизненным циклом.
-2. **MainWindowController** - контроллер основного окна приложения.
-3. **MainViewController** - контроллер представления с основным UI (кнопки записи и экспорта).
-4. **RecordingManager** - менеджер записи, координирует сбор данных.
-5. **SessionManager** - управляет сессиями записи, хранением и загрузкой данных.
-6. **ExportManager** - отвечает за экспорт данных в различные форматы.
-7. **AccessibilityHelper** - обеспечивает доступ к информации о UI элементах через Accessibility API.
-8. **EventMonitor** - мониторинг событий ввода (мышь, клавиатура).
-9. **ScreenCapture** - выполняет захват изображения экрана.
+## Key Features
 
-### Модели данных
-1. **RecordingSession** - представляет сеанс записи с коллекцией взаимодействий.
-2. **UserInteraction** - базовый протокол для всех типов взаимодействий.
-3. **MouseClickInteraction** - модель клика мыши.
-4. **MouseMoveInteraction** - модель движения мыши.
-5. **MouseScrollInteraction** - модель прокрутки колеса мыши.
-6. **KeyInteraction** - модель нажатия/отпускания клавиши.
-7. **ScreenshotInteraction** - модель скриншота.
-8. **UIElementInfo** - модель информации о UI элементе.
-9. **UIElementInteraction** - модель взаимодействия с UI элементом.
-10. **AnyInteraction** - type eraser для хранения любых типов взаимодействий.
+- **Screen Recording**: Captures screenshots and video of user activity
+- **Accessibility Integration**: Records UI element properties, hierarchies, and relationships
+- **Interaction Tracking**: Logs mouse movements, clicks, keyboard input, and system events
+- **Relationship Analysis**: Identifies connections between UI elements (hierarchical, spatial, functional, logical)
+- **Multiple Export Formats**: Supports JSON, COCO, and YOLO formats for machine learning applications
+- **Entitlements**: Includes necessary permissions for screen recording, camera access, and accessibility features
 
-### Вспомогательные модели
-1. **CodablePoint** - сериализуемая обертка для NSPoint/CGPoint.
-2. **CodableRect** - сериализуемая обертка для CGRect.
-3. **UIElementAction** - типы действий для UI элементов (click, focus, hover, input, scroll).
+## System Requirements
 
-## Структура файлов проекта
-```
-WeLabelDataRecorder/
-├── Sources/
-│   ├── Accessibility/
-│   │   └── UIElementInfo.swift         # Модели UI элементов и AccessibilityHelper
-│   ├── Export/
-│   │   └── ExportManager.swift         # Экспорт в различные форматы
-│   ├── Models/
-│   │   ├── UserInteraction.swift       # Основные модели взаимодействий
-│   │   └── UIElementInteraction.swift  # Модель взаимодействия с UI элементами
-│   ├── Recording/
-│   │   ├── RecordingManager.swift      # Координация записи
-│   │   ├── EventMonitor.swift          # Мониторинг событий
-│   │   └── ScreenCapture.swift         # Захват экрана
-│   ├── Session/
-│   │   └── SessionManager.swift        # Управление сессиями
-│   ├── AppDelegate.swift               # Entry point приложения
-│   ├── MainWindowController.swift      # Контроллер окна
-│   ├── MainViewController.swift        # Основной UI
-│   ├── main.swift                      # Инициализация приложения
-│   ├── Info.plist                      # Конфигурация приложения
-│   └── WeLabelDataRecorder.entitlements # Права доступа
-├── Tests/
-│   ├── UIElementInfoTests.swift        # Тесты для UIElementInfo
-│   ├── UIElementInteractionTests.swift # Тесты для UIElementInteraction
-│   └── AccessibilityHelperTests.swift  # Тесты для AccessibilityHelper
-├── build_app.sh                        # Скрипт сборки приложения
-└── fixed_Info.plist                    # Исправленный Info.plist для сборки
-```
+- macOS 10.15 (Catalina) or later
+- Administrative access for permission setup
+- Sufficient disk space for recording sessions
 
-## Процессы и функциональность
+## Installation
 
-### Жизненный цикл приложения
-1. Запуск приложения через main.swift
-2. Инициализация NSApplication и AppDelegate
-3. Создание MainWindowController и MainViewController
-4. Отображение UI и проверка разрешений
-5. Ожидание пользовательского ввода
+1. Download the latest release from the repository
+2. Open the application bundle (`WeLabelDataRecorder.app`)
+3. Grant the necessary permissions when prompted:
+   - Screen Recording
+   - Accessibility access
+   - Camera access (if needed)
+   - Microphone access (if needed)
 
-### Процесс записи
-1. Пользователь нажимает "Start Recording"
-2. MainViewController вызывает RecordingManager.startRecording()
-3. RecordingManager проверяет разрешения и инициализирует компоненты:
-   - Запускает EventMonitor для отслеживания событий мыши и клавиатуры
-   - Настраивает таймер для периодических скриншотов
-4. SessionManager создает новую сессию RecordingSession
-5. При взаимодействии пользователя:
-   - EventMonitor перехватывает события и вызывает соответствующие методы делегата
-   - RecordingManager создает модели взаимодействий (MouseClickInteraction и т.д.)
-   - Для кликов мыши и нажатий клавиш AccessibilityHelper получает информацию о UI элементах
-   - Созданные взаимодействия добавляются в текущую сессию
+## Permissions Configuration Guide
 
-### Процесс экспорта
-1. Пользователь нажимает "Export Last Session"
-2. MainViewController ищет последнюю сессию в следующем порядке:
-   - Прямая ссылка lastSession в MainViewController
-   - Ссылка на SessionManager.lastSession
-   - Поиск в сохраненных сессиях через SessionManager.getAllSessions()
-3. Открывается диалоговое окно для выбора места сохранения
-4. ExportManager преобразует данные в выбранный формат (сейчас поддерживается JSON)
-5. Отображается уведомление об успешном экспорте
+WeLabelDataRecorder requires specific system permissions to function properly. This section details how these permissions are configured and how to troubleshoot permission-related issues.
 
-### Рабочий процесс UI элементов
-1. При клике мыши или нажатии клавиши:
-   - RecordingManager запрашивает информацию о UI элементе через AccessibilityHelper
-   - AccessibilityHelper использует системное API AXUIElementCopyElementAtPosition для поиска элемента
-   - Создается UIElementInfo с информацией о роли, заголовке, позиции и других свойствах элемента
-   - Формируется UIElementInteraction, связывающий взаимодействие с конкретным UI элементом
-   - Это взаимодействие добавляется в сессию наряду с обычным взаимодействием
+### Required Permissions
 
-## Текущее состояние разработки
-1. ✅ **Базовая настройка macOS приложения** - Завершено
-2. ✅ **Запись экрана и действий пользователя** - Завершено
-3. ✅ **Система хранения данных** - Завершено
-4. 🔄 **Аннотирование UI элементов** - В процессе
-   - ✅ Реализован базовый сбор данных через Accessibility API
-   - ✅ Обнаружение UI элементов при кликах мышью
-   - ✅ Обнаружение UI элементов при вводе с клавиатуры
-   - ⏳ Отслеживание иерархии и отношений между элементами
-   - ⏳ Расширенный сбор свойств элементов
-5. 🔄 **Экспорт для ML обучения** - Частично завершено
-   - ✅ Базовый экспорт JSON
-   - ⏳ Экспорт в формат COCO для компьютерного зрения
-   - ⏳ Экспорт в формат YOLO для обнаружения объектов
+The application requires the following permissions:
 
-## Системные требования
-- macOS 11.0 или новее
-- Для разработки: Xcode 13.0 или новее
-- Разрешения:
-  - Доступ к возможностям записи экрана
-  - Доступ к функциям доступности (Accessibility API)
+1. **Screen Recording**: Essential for capturing screenshots and videos
+2. **Accessibility**: Required for accessing UI element information
+3. **Camera**: Required due to macOS security model, but not actively used unless needed
+4. **File Access**: For saving recordings to disk
 
-## Сборка приложения
-Сборка выполняется с помощью скрипта `build_app.sh`, который:
-1. Компилирует Swift-пакет в режиме release
-2. Создает структуру приложения (Contents/MacOS, Contents/Resources)
-3. Копирует бинарный файл и Info.plist
-4. Подписывает приложение с указанными entitlements
+### How Permissions Are Configured
 
-Для сборки приложения:
+The application uses two key files to configure permissions:
+
+1. **Info.plist**: Located at `complete_Info.plist`, this file contains usage descriptions required by macOS:
+   ```xml
+   <key>NSScreenCaptureUsageDescription</key>
+   <string>Приложение требует разрешения для записи экрана, чтобы фиксировать взаимодействия с интерфейсом.</string>
+   
+   <key>NSAccessibilityUsageDescription</key>
+   <string>Приложение нуждается в доступе к Accessibility для записи информации об UI элементах и отслеживания нажатий клавиш и мыши.</string>
+   
+   <key>NSCameraUsageDescription</key>
+   <string>Не используется, но требуется системой.</string>
+   ```
+
+2. **Entitlements File**: Located at `WeLabelDataRecorder/Sources/WeLabelDataRecorder.entitlements`, this file specifies which permissions the app needs:
+   ```xml
+   <key>com.apple.security.app-sandbox</key>
+   <false/>
+   
+   <key>com.apple.security.screen-recording</key>
+   <true/>
+   
+   <key>com.apple.security.automation.apple-events</key>
+   <true/>
+   ```
+
+### Build Process For Correct Permissions
+
+Our application uses a custom build script `build_app.sh` that ensures all permissions are properly configured:
+
+1. Compiles the Swift package
+2. Creates the app bundle structure
+3. Copies the binary, entitlements, and Info.plist
+4. Signs the app with the entitlements
+
 ```bash
-chmod +x build_app.sh
-./build_app.sh
+# Copy complete_Info.plist instead of creating a new one
+echo "Copying Info.plist..."
+cp "${ROOT_DIR}/complete_Info.plist" "${APP_BUNDLE}/Contents/Info.plist"
+
+# Copy entitlements file
+echo "Copying entitlements file..."
+cp "${ROOT_DIR}/WeLabelDataRecorder/Sources/WeLabelDataRecorder.entitlements" "${APP_BUNDLE}/Contents/Resources/"
+
+# Sign application with entitlements
+echo "Signing with entitlements..."
+codesign --force --deep --sign - --entitlements "${ROOT_DIR}/WeLabelDataRecorder/Sources/WeLabelDataRecorder.entitlements" "${APP_BUNDLE}"
 ```
 
-## Тестирование
-Разработаны модульные тесты для основных компонентов:
-- UIElementInfoTests - тесты для структуры информации о UI элементах
-- UIElementInteractionTests - тесты для взаимодействия с UI элементами
-- AccessibilityHelperTests - тесты для помощника по работе с Accessibility API
+### Troubleshooting Permission Issues
 
-Запуск тестов:
+We've included a diagnostic script `check_permissions_status.swift` to verify that permissions are correctly configured:
+
 ```bash
-swift test
+chmod +x check_permissions_status.swift
+./check_permissions_status.swift
 ```
 
-## Расширяемость и дальнейшее развитие
-- Поддержка дополнительных форматов экспорта (COCO, YOLO)
-- Улучшение отслеживания иерархии UI элементов
-- Добавление веб-интерфейса для просмотра и редактирования записей
-- Оптимизация производительности и тестирование
+This script checks:
+1. The existence and content of Info.plist
+2. The existence and content of entitlements file
+3. Whether the application is properly signed
+4. Provides instructions to verify system-level permission grants
 
-## Решение проблем
+### Known Permission Issues and Solutions
 
-### Общие проблемы
-1. **Отсутствие разрешений**: Убедитесь, что приложению предоставлены необходимые разрешения в Системных настройках macOS (Защита и безопасность -> Конфиденциальность):
-   - Запись экрана
-   - Доступность (Accessibility)
+1. **App Crashes with Camera Permission Error**:
+   - Symptom: The app crashes with message `This app has crashed because it attempted to access privacy-sensitive data without a usage description`
+   - Solution: Ensure `NSCameraUsageDescription` is present in Info.plist even if camera is not used
 
-2. **Проблемы с экспортом сессий**: 
-   - Убедитесь, что сессия была корректно завершена (нажатием кнопки "Stop Recording")
-   - Проверьте наличие прав доступа к директории сохранения
+2. **Screen Recording Not Working**:
+   - Solution: Reset screen recording permissions using Terminal:
+     ```bash
+     tccutil reset ScreenCapture
+     ```
+   - Then restart the application and grant permission when prompted
 
-3. **Отсутствие информации о UI элементах**:
-   - Проверьте, включен ли доступ к функциям Accessibility
-   - Некоторые приложения могут не предоставлять полную информацию о своих UI элементах
+3. **Accessibility Features Not Working**:
+   - Solution: Reset accessibility permissions using Terminal:
+     ```bash
+     tccutil reset Accessibility
+     ```
+   - Then restart the application and grant permission when prompted
 
-### Отладка
-1. Приложение выводит подробные логи, которые можно просмотреть через Console.app
-2. В коде используется обширное логирование с префиксами для каждого компонента
-3. Тесты содержат отключенные методы для ручной проверки функций Accessibility
+4. **Permission Prompts Not Appearing**:
+   - Solution: Check system permissions manually in System Preferences → Security & Privacy → Privacy
+   - Add the application manually to Screen Recording and Accessibility sections
 
-## Структура экспортируемых данных
-Экспортируемые данные в формате JSON имеют следующую структуру:
+### Testing Permissions After Grant
 
-```json
-{
-  "session": {
-    "id": "уникальный-идентификатор",
-    "startTime": "2023-04-22T12:00:00Z",
-    "endTime": "2023-04-22T12:05:00Z"
-  },
-  "interactions": [
-    {
-      "type": "mouseClick",
-      "timestamp": 1682164800.0,
-      "x": 100,
-      "y": 200,
-      "button": 0,
-      "clickCount": 1
-    },
-    {
-      "type": "keyDown",
-      "timestamp": 1682164801.0,
-      "keyCode": 36,
-      "characters": "\r"
-    },
-    {
-      "type": "screenshot",
-      "timestamp": 1682164802.0,
-      "fileName": "screenshot_1682164802.png"
-    },
-    {
-      "type": "uiElement",
-      "timestamp": 1682164803.0,
-      "element": {
-        "role": "button",
-        "title": "OK",
-        "position": {"x": 100, "y": 200},
-        "size": {"width": 80, "height": 30}
-      },
-      "action": "click"
-    }
-  ]
-}
+After granting permissions, you can verify they are working with:
+
+```bash
+log show --predicate 'process == "WeLabelDataRecorder"' --last 2m | grep -i "error"
 ```
 
-## Авторы и лицензия
-Проект WeLabelDataRecorder распространяется под лицензией MIT.
-© 2023-2025 WeLabelData Team 
+If no permission errors appear, the application is correctly configured.
+
+## Usage Guide
+
+### Starting a Recording Session
+
+1. Launch the application
+2. Click on the status bar icon or open the main window
+3. Configure recording settings:
+   - Recording area (full screen or custom region)
+   - Frame rate and quality
+   - Include/exclude specific applications
+4. Click "Start Recording" to begin
+
+### During Recording
+
+- A status indicator will show that recording is in progress
+- User interactions will be automatically tracked
+- Optionally add manual annotations or markers during recording
+
+### Ending a Recording Session
+
+1. Click "Stop Recording" in the menu bar or main window
+2. Provide a name for the session
+3. Select where to save the session data
+
+### Exporting Data
+
+1. Select a recorded session from the sessions list
+2. Choose Export from the menu
+3. Select an export format (JSON, COCO, YOLO)
+4. Choose a destination folder
+5. Click "Export" to generate the dataset
+
+## Accessibility Integration
+
+WeLabelDataRecorder leverages macOS's Accessibility API to:
+
+- Identify UI elements on screen
+- Track focus changes
+- Record element properties (role, title, identifier, etc.)
+- Build element hierarchies
+- Monitor state changes
+
+## Relationship Analysis System
+
+The application analyzes relationships between UI elements using multiple strategies:
+
+1. **Hierarchy Relationships**: Based on the UI element tree structure
+   - Parent/child relationships
+   - Sibling relationships
+
+2. **Spatial Relationships**: Based on screen positioning
+   - Containment (element within another)
+   - Overlapping elements
+   - Proximity-based relationships
+
+3. **Functional Relationships**: Based on interaction patterns
+   - Controls that affect other elements
+   - Label-to-control associations
+
+4. **Logical Relationships**: Based on semantic meaning
+   - Elements that form logical groups
+   - Sequential flows (wizards, forms)
+
+## Troubleshooting
+
+### Permission Issues
+
+If the application doesn't have full functionality:
+
+1. Check System Preferences > Security & Privacy > Privacy
+2. Ensure WeLabelDataRecorder is enabled under:
+   - Screen Recording
+   - Accessibility
+   - Camera (if needed)
+   - Microphone (if needed)
+
+### Recording Failures
+
+If recordings fail to start or stop properly:
+
+1. Restart the application
+2. Check available disk space
+3. Verify no other screen recording applications are running
+
+## Privacy Considerations
+
+- All data is stored locally on your system
+- No automatic data transmission to external servers
+- Be aware of sensitive information in your recordings
+- Review screenshots before sharing datasets
+
+## Advanced Usage
+
+### Command Line Interface
+
+For automation and integration with other tools:
+
+```
+WeLabelDataRecorderCLI [options]
+```
+
+Options:
+- `--record [duration]`: Start recording for specified duration
+- `--export [session_id] [format]`: Export a specific session
+- `--list-sessions`: Show all available sessions
+- `--config [path]`: Use custom configuration file
+
+## Roadmap
+
+Planned features for future releases:
+
+- Real-time data labeling during recording
+- Cloud integration for dataset sharing
+- Custom annotation tools
+- Advanced filtering options for exports
+- Batch processing capabilities
+
+## Support
+
+For issues, questions, or feature requests:
+
+- Check the GitHub repository Issues section
+- Contact the development team at support@welabeldatarecorder.example.com

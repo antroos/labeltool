@@ -2,46 +2,75 @@
 
 All notable changes to the WeLabelDataRecorder project will be documented in this file.
 
-## [Unreleased] - Upcoming in 1.2.0
+## Version 1.1.0 (Current)
 
-### Added
-- Basic UI Element Annotation support
-  - New `UIElementInfo` implementation for accessibility information
-  - New `UIElementInteraction` model for tracking UI element interactions
-  - Integration with mouse clicks and keyboard inputs
-  - Automatic detection of UI elements during recording
+### New Features
+- Accessibility integration for UI element detection
+- Advanced UI element metadata collection
+- Basic relationship detection between UI elements
+- Multiple export formats support (JSON, COCO, YOLO)
+- Improved session management with auto-save capability
 
-### Planned Features
-- Enhanced Accessibility API integration with hierarchy support
-- Improved UI element identification during recording
-- Metadata collection for UI elements
-- Link user interactions with specific UI elements
+### Bug Fixes
+- Fixed permissions issues for screen recording and accessibility
+- Updated Info.plist with proper usage descriptions
+- Optimized entitlements configuration for macOS security requirements
+- Fixed serialization issues with AppKit/CoreGraphics types
+- Improved application bundling process
 
-## [1.1.0] - 2025-04-22
+### Technical Improvements
+- Enhanced logging system for better debugging
+- Optimized screenshot capture process
+- Implemented permissions checking utility
+- Improved build system with proper Info.plist and entitlements handling
 
-### Fixed
-- Fixed session export functionality when attempting to export recordings
-- Resolved serialization issues with AppKit/CoreGraphics types (NSPoint, CGRect)
-- Added robust session storage with both disk and memory backups
-- Improved error handling and debug logging throughout the application
+## Version 1.0.0
 
-### Added
-- Added build script (`build_app.sh`) for easier application bundling
-- Implemented direct session reference in MainViewController for reliable export
-- Added helper structures for proper Codable support (CodablePoint, CodableRect)
-- Added comprehensive error logging during encoding/decoding operations
-
-### Changed
-- Refactored UserInteraction models to support proper serialization
-- Enhanced export process with multiple fallback mechanisms
-- Improved MainViewController's export logic to check multiple session sources
-
-## [1.0.0] - 2025-04-15
-
-### Added
-- Initial release of WeLabelDataRecorder
+### Features
 - Basic screen recording functionality
-- Mouse and keyboard event capture
-- Screenshot capture at intervals and on interaction
-- Simple export capabilities
-- Permission handling for screen recording and accessibility 
+- Mouse movement and click tracking
+- Keyboard input recording
+- Screenshot capture at regular intervals
+- Manual session export to JSON
+- Simple session playback
+
+## Planned for Version 1.2.0
+
+### In Progress
+- Complete UI Element Relationship Analyzer
+  - Enhanced hierarchy detection
+  - Relationship tracking between UI elements
+  - Visualization tools for element hierarchies
+
+- Finalize COCO and YOLO export formats
+  - Complete UI element category mapping
+  - Generate valid annotation formats for ML training
+  - Include metadata for complex relationships
+
+### Upcoming
+- Performance & Stability Improvements
+  - Optimize memory usage during long recording sessions
+  - Implement robust auto-save functionality
+  - Reduce CPU load during intensive recording
+  
+- UX Enhancements
+  - Redesigned session management interface
+  - Recording filtering capabilities
+  - Preview functionality for recorded sessions
+
+## Future Roadmap (v2.0.0)
+
+- Web Interface Integration
+  - Simple web viewer for recorded sessions
+  - Annotation capabilities in web interface
+  - Cloud storage integration
+
+- Machine Learning Integration
+  - Basic model training capabilities
+  - Feedback loop for improving annotations
+  - Pre-trained models for common UI elements
+
+- Multi-device Support
+  - iOS companion app for mobile testing
+  - Cross-platform session viewing
+  - Synchronized multi-device recording 

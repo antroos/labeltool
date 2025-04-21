@@ -24,6 +24,46 @@ A macOS application for recording screen activities and user interactions to cre
    ```
 3. The application will be built at `./WeLabelDataRecorder.app`
 
+## Permission Requirements
+
+WeLabelDataRecorder requires several system permissions to function correctly. When you first launch the application, it will request:
+
+- **Screen Recording Permission**: Required to capture screenshots and video
+- **Accessibility Permission**: Required to detect UI elements via Accessibility API
+- **Camera Permission**: Required by macOS security model (even though camera is not actively used)
+
+### Permission Configuration
+
+The permissions are configured through two key files:
+
+1. **complete_Info.plist**: Contains usage descriptions required by macOS
+2. **WeLabelDataRecorder.entitlements**: Specifies which entitlements the app needs
+
+The build script automatically incorporates these permissions into the app bundle.
+
+### Troubleshooting Permissions
+
+If you experience permission issues:
+
+1. Use the included diagnostic script:
+   ```bash
+   chmod +x check_permissions_status.swift
+   ./check_permissions_status.swift
+   ```
+
+2. For permission issues with screen recording or accessibility:
+   ```bash
+   # Reset screen recording permissions
+   tccutil reset ScreenCapture
+   
+   # Reset accessibility permissions
+   tccutil reset Accessibility
+   ```
+
+3. Manually verify permissions in System Preferences → Security & Privacy → Privacy
+
+For full details on permission configuration, see `DOCUMENTATION.md`.
+
 ## Usage
 
 1. Launch the application
@@ -35,9 +75,16 @@ A macOS application for recording screen activities and user interactions to cre
 
 ## Recent Updates
 
+### Fixed Permissions and Application Build System
+
+- Fixed permissions issues for screen recording and accessibility
+- Updated Info.plist with proper usage descriptions
+- Optimized entitlements configuration
+- Added permissions check utility script
+- Improved application bundling process
+
 ### Fixed Session Export
 
-Fixed an issue with session export functionality:
 - Added proper serialization support for AppKit/CoreGraphics types (NSPoint, CGRect)
 - Implemented robust session storage mechanisms with in-memory backup
 - Enhanced logging for improved debugging
@@ -59,23 +106,45 @@ Our development roadmap includes the following milestones:
 1. ✅ **Basic macOS application setup** - Complete
 2. ✅ **Screen recording and user action capturing** - Complete
 3. ✅ **Data storage system** - Complete
-4. 🔄 **UI Element Annotation** - In Progress
+4. ✅ **Application bundling and permissions handling** - Complete
+5. 🔄 **UI Element Annotation** - In Progress
    - ✅ Basic accessibility data collection implemented
    - ✅ UI element detection during mouse clicks
    - ✅ UI element detection during keyboard input
-   - ⏳ Hierarchy and relationship tracking
+   - 🚀 **[NEXT PRIORITY]** UI element hierarchy and relationship tracking
    - ⏳ Advanced element properties collection
-5. 🔄 **Export capabilities for ML training** - Partially Complete
+6. 🔄 **Export capabilities for ML training** - Partially Complete
    - ✅ Basic JSON export
-   - ⏳ COCO format export for computer vision
+   - 🚀 **[NEXT PRIORITY]** COCO format export for computer vision
    - ⏳ YOLO format export for object detection
-6. ⏳ **Web interface integration** - Planned
+7. ⏳ **Performance optimization and UX improvements** - Planned
+   - Make recording more efficient
+   - Improve user interface for session management
+   - Add filtering capabilities for recordings
+8. ⏳ **Web interface integration** - Planned
    - Create simple web viewer for recorded sessions
    - Add annotation capabilities in web interface
-7. ⏳ **Comprehensive testing and stabilization** - Planned
+9. ⏳ **Comprehensive testing and stabilization** - Planned
    - Unit and integration tests
    - Performance optimization
    - Documentation
+
+## Next Up (v1.2.0 Development)
+
+1. **Complete UI Element Relationship Analyzer**
+   - Implement improved UI element hierarchy detection
+   - Add relationship tracking between UI elements
+   - Create visualization tools for element hierarchies
+
+2. **Finish COCO Export Format**
+   - Complete implementation of ExportManager.exportToCOCO
+   - Add proper category mapping for UI elements
+   - Generate valid COCO-format annotations
+
+3. **Performance & Stability Improvements**
+   - Optimize screenshot capture process
+   - Reduce memory usage during long recording sessions
+   - Implement auto-save functionality
 
 ## Development
 
