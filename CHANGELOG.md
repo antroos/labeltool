@@ -1,6 +1,66 @@
 # Changelog
 
-All notable changes to the WeLabelDataRecorder project will be documented in this file.
+All notable changes to this project will be documented in this file.
+
+## [1.2.0] - 2025-04-22
+
+### Added
+- Enhanced user interface with session list and thumbnails
+- Permission status indicators in the main window
+- Disk space usage indicator
+- Visual feedback during recording (animation)
+- Table view for session management with metrics
+- Improved buttons with icon support
+- Helper script for permission requests (`request_all_permissions.sh`)
+- Consistent application identity across builds
+
+### Changed
+- Improved application build process for better permission handling
+- Enhanced permission management system
+- Removed unnecessary camera and microphone permission requests
+- Updated documentation with UI and permission details
+- Restructured main window layout for better usability
+
+### Fixed
+- Permission reset issues when rebuilding the application
+- UI elements positioning and constraints
+- Visual feedback when recording starts and stops
+- Session list refresh after recording completion
+
+## [1.1.0] - 2025-03-15
+
+### Added
+- UI Element Relationship Analyzer
+- Support for hierarchical, spatial, functional, and logical relationships
+- Relationship visualization using DOT format
+- Export of relationship data in JSON, COCO, and YOLO formats
+- Relevance scoring for relationship prioritization
+
+### Changed
+- Improved UI element detection during recording
+- Enhanced export formats with relationship data
+- Updated documentation with relationship analysis details
+
+### Fixed
+- Screen recording permission handling
+- Session data serialization for AppKit/CoreGraphics types
+
+## [1.0.0] - 2025-02-01
+
+### Added
+- Initial release of WeLabelDataRecorder
+- Screen recording and screenshot capture
+- Mouse and keyboard event tracking
+- UI element detection via Accessibility API
+- Export in JSON, COCO, and YOLO formats
+- Basic application UI
+- Test export mode
+
+### Changed
+- N/A (initial release)
+
+### Fixed
+- N/A (initial release)
 
 ## Version 1.1.0 (Current)
 

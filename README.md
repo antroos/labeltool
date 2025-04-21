@@ -24,7 +24,12 @@ A macOS application for recording screen activities and user interactions to cre
    chmod +x build_app.sh
    ./build_app.sh
    ```
-3. The application will be built at `./WeLabelDataRecorder.app`
+3. Configure permissions using the helper script:
+   ```bash
+   chmod +x request_all_permissions.sh
+   ./request_all_permissions.sh
+   ```
+4. The application will be built at `./WeLabelDataRecorder.app`
 
 ## Permission Requirements
 
@@ -32,7 +37,6 @@ WeLabelDataRecorder requires several system permissions to function correctly. W
 
 - **Screen Recording Permission**: Required to capture screenshots and video
 - **Accessibility Permission**: Required to detect UI elements via Accessibility API
-- **Camera Permission**: Required by macOS security model (even though camera is not actively used)
 
 ### Permission Configuration
 
@@ -120,6 +124,22 @@ This will:
 
 ## Recent Updates
 
+### Enhanced User Interface (v1.2.0)
+
+- Added clear session list with thumbnails and session metrics
+- Implemented status indicators for permissions and disk space
+- Improved recording and export buttons with icons
+- Added visual feedback during recording
+- Created structured table view for session management
+
+### Permission System Improvements
+
+- Streamlined permission handling and request process
+- Added permission status indicators in the UI
+- Created permission request helper script
+- Ensured consistent application identity across builds
+- Reduced unnecessary permission requests
+
 ### UI Element Relationship Analyzer
 
 - Implemented comprehensive relationship analysis between UI elements
@@ -179,8 +199,10 @@ Our development roadmap includes the following milestones:
    - ✅ COCO format export for computer vision
    - ✅ YOLO format export for object detection
 7. 🔄 **Performance optimization and UX improvements** - In Progress
+   - ✅ Improved session management interface
+   - ✅ Added status indicators and visual feedback
+   - ✅ Enhanced permission management system
    - 🚀 **[NEXT PRIORITY]** Make recording more efficient
-   - 🚀 **[NEXT PRIORITY]** Improve user interface for session management
    - ⏳ Add filtering capabilities for recordings
 8. ⏳ **Web interface integration** - Planned
    - Create simple web viewer for recorded sessions

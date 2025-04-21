@@ -41,10 +41,6 @@
     <key>NSAccessibilityUsageDescription</key>
     <string>Приложение нуждается в доступе к Accessibility для записи информации об UI элементах и отслеживания нажатий клавиш и мыши.</string>
     
-    <!-- Требуется для внутренних механизмов macOS -->
-    <key>NSCameraUsageDescription</key>
-    <string>Не используется, но требуется системой.</string>
-    
     <!-- Дополнительные разрешения файловой системы для сохранения записей -->
     <key>NSDesktopFolderUsageDescription</key>
     <string>Необходим доступ к рабочему столу для сохранения записей.</string>

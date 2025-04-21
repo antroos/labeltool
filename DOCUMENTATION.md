@@ -26,8 +26,35 @@ WeLabelDataRecorder is a macOS application designed to capture and record user i
 3. Grant the necessary permissions when prompted:
    - Screen Recording
    - Accessibility access
-   - Camera access (if needed)
-   - Microphone access (if needed)
+
+## User Interface Overview
+
+The application interface is organized into several key components:
+
+### 1. Status Panel
+- Located at the top of the window
+- Displays current permission status for Screen Recording and Accessibility
+- Shows available disk space for recordings
+- Provides visual feedback during recording (red pulse animation)
+
+### 2. Session List
+- Central table view with columns for:
+  - Thumbnail: Visual preview of the session
+  - Session Info: ID, start/end times
+  - Metrics: Duration and interaction count
+  - Actions: Quick access to export functions
+- Automatically updates when sessions are created or modified
+- Allows selection of sessions for export
+
+### 3. Control Buttons
+- Start/Stop Recording: Toggles recording state with clear visual feedback
+- Export Session: Exports the currently selected session
+- Status indicator shows current application state
+
+### 4. Visual Feedback
+- Permission indicators change color based on status (red/green)
+- Recording state is clearly visible
+- Animations provide feedback for user actions
 
 ## Complete Application Workflow
 
@@ -94,6 +121,7 @@ Each relationship is assigned a relevance score (0.0-1.0) to indicate its import
   - The session is finalized with an end timestamp
   - Session data is saved to memory and disk
   - The UI updates to show export options
+  - Session appears in the session list table
 
 - Sessions are managed by the `SessionManager` which:
   - Maintains references to current and previous sessions
@@ -103,7 +131,7 @@ Each relationship is assigned a relevance score (0.0-1.0) to indicate its import
 
 ### 5. Data Export
 
-- When "Export Last Session" is clicked:
+- When "Export Last Session" is clicked or the export button is pressed in the table:
   - User selects an export format and destination
   - `ExportManager` processes the session data
   - Creates a structured directory with all necessary files
@@ -147,8 +175,7 @@ The application requires the following permissions:
 
 1. **Screen Recording**: Essential for capturing screenshots and videos
 2. **Accessibility**: Required for accessing UI element information
-3. **Camera**: Required due to macOS security model, but not actively used unless needed
-4. **File Access**: For saving recordings to disk
+3. **File Access**: For saving recordings to disk
 
 ### How Permissions Are Configured
 
@@ -162,8 +189,8 @@ The application uses two key files to configure permissions:
    <key>NSAccessibilityUsageDescription</key>
    <string>Приложение нуждается в доступе к Accessibility для записи информации об UI элементах и отслеживания нажатий клавиш и мыши.</string>
    
-   <key>NSCameraUsageDescription</key>
-   <string>Не используется, но требуется системой.</string>
+   <key>NSAppleEventsUsageDescription</key>
+   <string>Приложение нуждается в доступе к управлению другими приложениями для записи их взаимодействия с интерфейсом.</string>
    ```
 
 2. **Entitlements File**: Located at `WeLabelDataRecorder/Sources/WeLabelDataRecorder.entitlements`, this file specifies which permissions the app needs:
@@ -178,6 +205,26 @@ The application uses two key files to configure permissions:
    <true/>
    ```
 
+### Permission Management Tools
+
+The application includes several tools to manage permissions effectively:
+
+1. **request_all_permissions.sh**: A helper script that guides the user through granting all necessary permissions:
+   ```bash
+   ./request_all_permissions.sh
+   ```
+   This script opens the system preference panels for each required permission and provides step-by-step instructions.
+
+2. **check_permissions_status.swift**: A diagnostic tool that checks if the application has the correct permissions configuration:
+   ```bash
+   ./check_permissions_status.swift
+   ```
+   This reports on the existence and content of Info.plist, entitlements, and the application's signature.
+
+3. **Visual Permission Indicators**: In the application's UI, colored indicators show the current status of each permission:
+   - Green: Permission granted
+   - Red: Permission missing
+
 ### Build Process For Correct Permissions
 
 Our application uses a custom build script `build_app.sh` that ensures all permissions are properly configured:
@@ -186,11 +233,12 @@ Our application uses a custom build script `build_app.sh` that ensures all permi
 2. Creates the app bundle structure
 3. Copies the binary, entitlements, and Info.plist
 4. Signs the app with the entitlements
+5. Ensures a consistent bundle identifier
 
 ```bash
-# Copy complete_Info.plist instead of creating a new one
-echo "Copying Info.plist..."
-cp "${ROOT_DIR}/complete_Info.plist" "${APP_BUNDLE}/Contents/Info.plist"
+# Ensure bundle ID is consistent
+echo "Ensuring bundle ID is consistent..."
+/usr/libexec/PlistBuddy -c "Set :CFBundleIdentifier ${BUNDLE_ID}" "${APP_BUNDLE}/Contents/Info.plist"
 
 # Copy entitlements file
 echo "Copying entitlements file..."
@@ -198,47 +246,35 @@ cp "${ROOT_DIR}/WeLabelDataRecorder/Sources/WeLabelDataRecorder.entitlements" "$
 
 # Sign application with entitlements
 echo "Signing with entitlements..."
-codesign --force --deep --sign - --entitlements "${ROOT_DIR}/WeLabelDataRecorder/Sources/WeLabelDataRecorder.entitlements" "${APP_BUNDLE}"
+codesign --force --deep --sign - --entitlements "${ROOT_DIR}/WeLabelDataRecorder/Sources/WeLabelDataRecorder.entitlements" --identifier "${BUNDLE_ID}" "${APP_BUNDLE}"
 ```
 
 ### Troubleshooting Permission Issues
 
-We've included a diagnostic script `check_permissions_status.swift` to verify that permissions are correctly configured:
+Common permission issues and their solutions:
 
-```bash
-chmod +x check_permissions_status.swift
-./check_permissions_status.swift
-```
-
-This script checks:
-1. The existence and content of Info.plist
-2. The existence and content of entitlements file
-3. Whether the application is properly signed
-4. Provides instructions to verify system-level permission grants
-
-### Known Permission Issues and Solutions
-
-1. **App Crashes with Camera Permission Error**:
-   - Symptom: The app crashes with message `This app has crashed because it attempted to access privacy-sensitive data without a usage description`
-   - Solution: Ensure `NSCameraUsageDescription` is present in Info.plist even if camera is not used
-
-2. **Screen Recording Not Working**:
+1. **Screen Recording Not Working**:
    - Solution: Reset screen recording permissions using Terminal:
      ```bash
      tccutil reset ScreenCapture
      ```
    - Then restart the application and grant permission when prompted
 
-3. **Accessibility Features Not Working**:
+2. **Accessibility Features Not Working**:
    - Solution: Reset accessibility permissions using Terminal:
      ```bash
      tccutil reset Accessibility
      ```
    - Then restart the application and grant permission when prompted
 
-4. **Permission Prompts Not Appearing**:
+3. **Permission Prompts Not Appearing**:
    - Solution: Check system permissions manually in System Preferences → Security & Privacy → Privacy
    - Add the application manually to Screen Recording and Accessibility sections
+
+4. **Permissions Reset After Rebuild**:
+   - Solution: This is normal behavior when the app's identity changes
+   - Use the `request_all_permissions.sh` script after each rebuild
+   - The improved build script maintains a consistent app identity to minimize this issue
 
 ### Testing Permissions After Grant
 
@@ -580,6 +616,58 @@ This feature is especially valuable for:
 - UI automation development
 - Interface design analysis
 - Training machine learning models for UI understanding
+
+## Developer Tools and Resources
+
+The project includes several developer tools to help with testing, debugging, and extending the application:
+
+### Developer Scripts
+
+1. **build_app.sh**
+   - Builds the application with proper entitlements and permissions
+   - Creates a correctly structured app bundle
+   - Ensures consistent bundle identity
+
+2. **request_all_permissions.sh**
+   - Interactive script for setting up all required permissions
+   - Opens relevant system preference panels
+   - Provides guidance for permission configuration
+
+3. **check_permissions_status.swift**
+   - Diagnostic tool for verifying permission setup
+   - Checks Info.plist and entitlements files
+   - Verifies application signing
+
+4. **run_test_export.sh**
+   - Creates and exports a sample recording session
+   - Demonstrates the export formats
+   - Useful for testing without recording actual sessions
+
+### Debug Mode
+
+Launch the application from Terminal to see debug output:
+
+```bash
+/path/to/WeLabelDataRecorder.app/Contents/MacOS/WeLabelDataRecorder
+```
+
+This will show console output with:
+- UI initialization steps
+- Permission status
+- Recording events
+- Export operations
+
+### UI Component Architecture
+
+The MainViewController implements several protocols:
+- **RecordingManagerDelegate**: For handling recording events
+- **NSTableViewDelegate**: For managing session list interactions
+- **NSTableViewDataSource**: For providing session data to the table
+
+Key UI components include:
+- **SessionsTableView**: Displays recorded sessions with thumbnails and metadata
+- **PermissionStatusView**: Shows visual indicators for permission status
+- **RecordButton/ExportButton**: Primary action controls with visual feedback
 
 ## Support and Development
 
