@@ -48,6 +48,7 @@ enum InteractionType: String, Codable {
     case keyDown
     case keyUp
     case screenshot
+    case uiElement
 }
 
 // Represents a mouse click event

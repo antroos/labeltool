@@ -43,19 +43,25 @@ class RecordingManager: EventMonitorDelegate {
     
     // Start a new recording session
     func startRecording() throws {
+        print("RecordingManager: startRecording called")
         guard !isRecording else {
+            print("RecordingManager: ERROR - Already recording")
             throw RecordingError.alreadyRecording
         }
         
         // Check permissions before starting
+        print("RecordingManager: Checking permissions")
         if !checkPermissions() {
+            print("RecordingManager: ERROR - Permission denied")
             throw RecordingError.permissionDenied
         }
         
         // Set up components
+        print("RecordingManager: Starting event monitoring")
         eventMonitor.startMonitoring()
         
         // Start screenshot timer
+        print("RecordingManager: Setting up screenshot timer")
         screenshotTimer = Timer.scheduledTimer(
             timeInterval: screenshotInterval,
             target: self,
@@ -66,57 +72,89 @@ class RecordingManager: EventMonitorDelegate {
         
         // Update state
         isRecording = true
-        print("RecordingManager: Started recording")
+        print("RecordingManager: Recording started successfully")
         
         // Take initial screenshot
+        print("RecordingManager: Taking initial screenshot")
         capturePeriodicScreenshot()
         
         // Notify delegate
+        print("RecordingManager: Notifying delegate")
         delegate?.recordingDidStart()
     }
     
     // Stop the current recording session
     func stopRecording() throws {
+        print("RecordingManager: stopRecording called")
         guard isRecording else {
+            print("RecordingManager: ERROR - Not recording")
             throw RecordingError.notRecording
         }
         
         // Stop components
+        print("RecordingManager: Stopping event monitoring")
         eventMonitor.stopMonitoring()
         
         // Stop screenshot timer
+        print("RecordingManager: Stopping screenshot timer")
         screenshotTimer?.invalidate()
         screenshotTimer = nil
         
         // Update state
         isRecording = false
-        print("RecordingManager: Stopped recording")
+        print("RecordingManager: Recording stopped successfully")
         
         // Notify delegate
+        print("RecordingManager: Notifying delegate")
         delegate?.recordingDidStop()
     }
     
     // Check if we have the necessary permissions
     func checkPermissions() -> Bool {
+        print("RecordingManager: checkPermissions called")
         // Check accessibility permissions
         let accessibilityEnabled = accessibilityHelper.isAccessibilityEnabled()
+        print("RecordingManager: Accessibility permissions: \(accessibilityEnabled)")
         
-        // TODO: Check screen recording permissions
-        // This requires additional setup with entitlements
-        let screenRecordingEnabled = true // Placeholder
+        // Check screen recording permissions
+        // This would normally require actual implementation with CGDisplayStream or AVCaptureScreenInput
+        var screenRecordingEnabled = false
         
-        return accessibilityEnabled && screenRecordingEnabled
+        // Try to create a test screenshot to see if we have permissions
+        print("RecordingManager: Testing screen capture permissions")
+        if let _ = screenCapture.captureScreenshot() {
+            screenRecordingEnabled = true
+            print("RecordingManager: Screen recording permissions granted")
+        } else {
+            screenRecordingEnabled = false
+            print("RecordingManager: Screen recording permissions denied")
+        }
+        
+        let allPermissionsGranted = accessibilityEnabled && screenRecordingEnabled
+        print("RecordingManager: All permissions granted: \(allPermissionsGranted)")
+        return allPermissionsGranted
     }
     
     // Request permissions needed for recording
     func requestPermissions(completion: @escaping (Bool) -> Void) {
+        print("RecordingManager: requestPermissions called")
         // Request accessibility permissions
+        print("RecordingManager: Requesting accessibility permissions")
         accessibilityHelper.requestAccessibilityPermissions()
         
-        // TODO: Request screen recording permissions
+        // For screen recording, macOS usually shows a system dialog when an app tries to capture the screen
+        // We can trigger this by attempting to create a screen capture
+        print("RecordingManager: Trying to trigger screen recording permission dialog")
+        let _ = screenCapture.captureScreenshot()
         
-        // For now, just return true
-        completion(true)
+        // Since we can't detect the result of the permission dialog directly,
+        // we'll just check again after a delay
+        print("RecordingManager: Waiting for user to respond to permission dialogs")
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+            let granted = self.checkPermissions()
+            print("RecordingManager: Permissions after request: \(granted)")
+            completion(granted)
+        }
     }
     
     // MARK: - Screenshot Capture
@@ -170,9 +208,20 @@ class RecordingManager: EventMonitorDelegate {
         // Capture a screenshot when the user clicks
         capturePeriodicScreenshot()
         
-        // Try to get UI element information at click position
+        // Get UI element information at click position
         if let elementInfo = accessibilityHelper.getUIElementAtPosition(interaction.position) {
             print("Clicked element: \(elementInfo.role) - \(elementInfo.title ?? "unnamed")")
+            
+            // Create UI element interaction
+            let elementInteraction = UIElementInteraction(
+                timestamp: interaction.timestamp,
+                elementInfo: elementInfo,
+                action: .click,
+                position: interaction.position
+            )
+            
+            // Add to current session
+            SessionManager.shared.currentSession?.addInteraction(elementInteraction)
         }
     }
     
@@ -215,6 +264,22 @@ class RecordingManager: EventMonitorDelegate {
         
         // Add to current session
         SessionManager.shared.currentSession?.addInteraction(interaction)
+        
+        // Get focused UI element (for text input and other interactions)
+        if let focusedElement = accessibilityHelper.getFocusedElement() {
+            print("Focused element: \(focusedElement.role) - \(focusedElement.title ?? "unnamed")")
+            
+            // Create UI element interaction
+            let elementInteraction = UIElementInteraction(
+                timestamp: interaction.timestamp,
+                elementInfo: focusedElement,
+                action: .input,
+                position: NSEvent.mouseLocation // Use current mouse position as approximation
+            )
+            
+            // Add to current session
+            SessionManager.shared.currentSession?.addInteraction(elementInteraction)
+        }
         
         // Capture a screenshot when the user presses certain keys
         if event.keyCode == 36 { // Return key
