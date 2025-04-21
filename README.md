@@ -52,6 +52,30 @@ The application is organized into several key components:
 - **Export Manager**: Handles exporting sessions to various formats
 - **User Interaction Models**: Defines data structures for different user interactions
 
+## Roadmap
+
+Our development roadmap includes the following milestones:
+
+1. ✅ **Basic macOS application setup** - Complete
+2. ✅ **Screen recording and user action capturing** - Complete
+3. ✅ **Data storage system** - Complete
+4. 🔄 **UI Element Annotation** - In Progress
+   - Identify UI elements on screen during recording
+   - Add metadata and annotations to elements
+   - Link user actions with specific UI elements
+   - Improve accessibility data collection
+5. 🔄 **Export capabilities for ML training** - Partially Complete
+   - ✅ Basic JSON export
+   - ⏳ COCO format export for computer vision
+   - ⏳ YOLO format export for object detection
+6. ⏳ **Web interface integration** - Planned
+   - Create simple web viewer for recorded sessions
+   - Add annotation capabilities in web interface
+7. ⏳ **Comprehensive testing and stabilization** - Planned
+   - Unit and integration tests
+   - Performance optimization
+   - Documentation
+
 ## Development
 
 ### Building from Source

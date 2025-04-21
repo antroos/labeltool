@@ -2,6 +2,15 @@
 
 All notable changes to the WeLabelDataRecorder project will be documented in this file.
 
+## [Unreleased] - Upcoming in 1.2.0
+
+### Planned Features
+- UI Element Annotation and Marking
+- Enhanced Accessibility API integration
+- Improved UI element identification during recording
+- Metadata collection for UI elements
+- Link user interactions with specific UI elements
+
 ## [1.1.0] - 2025-04-22
 
 ### Fixed
