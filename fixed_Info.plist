@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>CFBundleDevelopmentRegion</key>
+    <string>en</string>
+    <key>CFBundleExecutable</key>
+    <string>WeLabelDataRecorder</string>
+    <key>CFBundleIconFile</key>
+    <string></string>
+    <key>CFBundleIdentifier</key>
+    <string>com.welabeldata.recorder</string>
+    <key>CFBundleInfoDictionaryVersion</key>
+    <string>6.0</string>
+    <key>CFBundleName</key>
+    <string>WeLabelDataRecorder</string>
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+    <key>CFBundleShortVersionString</key>
+    <string>1.0</string>
+    <key>CFBundleVersion</key>
+    <string>1</string>
+    <key>LSMinimumSystemVersion</key>
+    <string>11.0</string>
+    <key>NSHumanReadableCopyright</key>
+    <string>Copyright © 2023 WeLabelData. All rights reserved.</string>
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+    <key>NSSupportsAutomaticTermination</key>
+    <true/>
+    <key>NSSupportsSuddenTermination</key>
+    <true/>
+    
+    <key>NSAppleEventsUsageDescription</key>
+    <string>This app needs to control other applications to record their UI interactions.</string>
+    
+    <key>NSScreenCaptureUsageDescription</key>
+    <string>This app requires screen capture permissions to record UI interactions for training AI models.</string>
+    
+    <key>NSAccessibilityUsageDescription</key>
+    <string>This app needs accessibility permissions to record UI element information for training AI models.</string>
+    
+    <key>LSBackgroundOnly</key>
+    <false/>
+    <key>LSUIElement</key>
+    <false/>
+</dict>
+</plist> 

@@ -1,34 +1,71 @@
-# WeLabelData Recorder
+# WeLabelDataRecorder
 
-A macOS application for recording UI interactions to create training data for AI operators.
+A macOS application for recording screen activities and user interactions to create labeled datasets for AI training.
 
-## Project Overview
+## Features
 
-WeLabelData Recorder captures user interactions with macOS interfaces:
-- Screen captures with associated UI metadata
-- Mouse movements, clicks, and scrolling
-- Keyboard inputs
-- UI element identification via Accessibility API
-- Data export for AI training
+- Record screen activities including mouse movements, clicks, and keyboard input
+- Capture screenshots at regular intervals and on user interaction
+- Export recorded sessions in JSON format for further processing
+- Extensible design with support for multiple export formats (JSON, COCO, YOLO)
+
+## Requirements
+
+- macOS 11.0 or later
+- Xcode 13.0 or later (for development)
+
+## Installation
+
+1. Clone this repository
+2. Run the build script to create the application:
+   ```bash
+   chmod +x build_app.sh
+   ./build_app.sh
+   ```
+3. The application will be built at `./WeLabelDataRecorder.app`
+
+## Usage
+
+1. Launch the application
+2. Grant necessary permissions for screen recording and accessibility when prompted
+3. Click "Start Recording" to begin a recording session
+4. Perform the activities you want to record
+5. Click "Stop Recording" to end the session
+6. Click "Export Last Session" to save the recorded data
+
+## Recent Updates
+
+### Fixed Session Export
+
+Fixed an issue with session export functionality:
+- Added proper serialization support for AppKit/CoreGraphics types (NSPoint, CGRect)
+- Implemented robust session storage mechanisms with in-memory backup
+- Enhanced logging for improved debugging
+- Added direct reference to the last session in the view controller
+
+## Architecture
+
+The application is organized into several key components:
+
+- **Recording Manager**: Handles screen recording, event monitoring, and accessibility features
+- **Session Manager**: Manages recording sessions, stores interaction data
+- **Export Manager**: Handles exporting sessions to various formats
+- **User Interaction Models**: Defines data structures for different user interactions
 
 ## Development
 
-This project is being developed in Swift using a test-driven approach.
+### Building from Source
 
-### Requirements
-- macOS 11 or later
-- Xcode 13 or later
+```bash
+swift build -c release
+```
 
-## MVP Roadmap
+### Running Tests
 
-1. Basic macOS application setup
-2. Screen recording and user action capturing
-3. Data storage system
-4. Annotation and UI element marking
-5. Export capabilities for ML training
-6. Web interface integration
-7. Comprehensive testing and stabilization
+```bash
+swift test
+```
 
-## Getting Started
+## License
 
-(Instructions will be added as the project progresses) 
+This project is licensed under the MIT License - see the LICENSE file for details. 

@@ -1,6 +1,39 @@
 import Foundation
 import AppKit
 
+// Вспомогательные структуры для сериализации/десериализации типов AppKit/CoreGraphics
+struct CodablePoint: Codable {
+    let x: CGFloat
+    let y: CGFloat
+    
+    init(from point: NSPoint) {
+        self.x = point.x
+        self.y = point.y
+    }
+    
+    var toNSPoint: NSPoint {
+        return NSPoint(x: x, y: y)
+    }
+}
+
+struct CodableRect: Codable {
+    let x: CGFloat
+    let y: CGFloat
+    let width: CGFloat
+    let height: CGFloat
+    
+    init(from rect: CGRect) {
+        self.x = rect.origin.x
+        self.y = rect.origin.y
+        self.width = rect.size.width
+        self.height = rect.size.height
+    }
+    
+    var toCGRect: CGRect {
+        return CGRect(x: x, y: y, width: width, height: height)
+    }
+}
+
 // Base protocol for all user interactions
 protocol UserInteraction {
     var timestamp: Date { get }
@@ -21,15 +54,29 @@ enum InteractionType: String, Codable {
 struct MouseClickInteraction: UserInteraction, Codable {
     let timestamp: Date
     let interactionType: InteractionType = .mouseClick
-    let position: NSPoint
+    
+    // Используем приватные свойства для обеспечения корректной сериализации
+    private let positionPoint: CodablePoint
     let button: MouseButton
     let clickCount: Int
+    
+    // Публичный доступ через вычисляемое свойство
+    var position: NSPoint {
+        return positionPoint.toNSPoint
+    }
+    
+    init(timestamp: Date, position: NSPoint, button: MouseButton, clickCount: Int) {
+        self.timestamp = timestamp
+        self.positionPoint = CodablePoint(from: position)
+        self.button = button
+        self.clickCount = clickCount
+    }
     
     // Add CodingKeys to handle the interactionType property
     enum CodingKeys: String, CodingKey {
         case timestamp
         case interactionType
-        case position
+        case positionPoint
         case button
         case clickCount
     }
@@ -39,15 +86,32 @@ struct MouseClickInteraction: UserInteraction, Codable {
 struct MouseMoveInteraction: UserInteraction, Codable {
     let timestamp: Date
     let interactionType: InteractionType = .mouseMove
-    let fromPosition: NSPoint
-    let toPosition: NSPoint
+    
+    // Используем приватные свойства для обеспечения корректной сериализации
+    private let fromPositionPoint: CodablePoint
+    private let toPositionPoint: CodablePoint
+    
+    // Публичный доступ через вычисляемые свойства
+    var fromPosition: NSPoint {
+        return fromPositionPoint.toNSPoint
+    }
+    
+    var toPosition: NSPoint {
+        return toPositionPoint.toNSPoint
+    }
+    
+    init(timestamp: Date, fromPosition: NSPoint, toPosition: NSPoint) {
+        self.timestamp = timestamp
+        self.fromPositionPoint = CodablePoint(from: fromPosition)
+        self.toPositionPoint = CodablePoint(from: toPosition)
+    }
     
     // Add CodingKeys to handle the interactionType property
     enum CodingKeys: String, CodingKey {
         case timestamp
         case interactionType
-        case fromPosition
-        case toPosition
+        case fromPositionPoint
+        case toPositionPoint
     }
 }
 
@@ -55,15 +119,29 @@ struct MouseMoveInteraction: UserInteraction, Codable {
 struct MouseScrollInteraction: UserInteraction, Codable {
     let timestamp: Date
     let interactionType: InteractionType = .mouseScroll
-    let position: NSPoint
+    
+    // Используем приватные свойства для обеспечения корректной сериализации
+    private let positionPoint: CodablePoint
     let deltaX: CGFloat
     let deltaY: CGFloat
+    
+    // Публичный доступ через вычисляемое свойство
+    var position: NSPoint {
+        return positionPoint.toNSPoint
+    }
+    
+    init(timestamp: Date, position: NSPoint, deltaX: CGFloat, deltaY: CGFloat) {
+        self.timestamp = timestamp
+        self.positionPoint = CodablePoint(from: position)
+        self.deltaX = deltaX
+        self.deltaY = deltaY
+    }
     
     // Add CodingKeys to handle the interactionType property
     enum CodingKeys: String, CodingKey {
         case timestamp
         case interactionType
-        case position
+        case positionPoint
         case deltaX
         case deltaY
     }
@@ -105,14 +183,27 @@ struct ScreenshotInteraction: UserInteraction, Codable {
     let timestamp: Date
     let interactionType: InteractionType = .screenshot
     let imageFileName: String
-    let screenBounds: CGRect
+    
+    // Используем приватное свойство для обеспечения корректной сериализации
+    private let screenBoundsRect: CodableRect
+    
+    // Публичный доступ через вычисляемое свойство
+    var screenBounds: CGRect {
+        return screenBoundsRect.toCGRect
+    }
+    
+    init(timestamp: Date, imageFileName: String, screenBounds: CGRect) {
+        self.timestamp = timestamp
+        self.imageFileName = imageFileName
+        self.screenBoundsRect = CodableRect(from: screenBounds)
+    }
     
     // Add CodingKeys to handle the interactionType property
     enum CodingKeys: String, CodingKey {
         case timestamp
         case interactionType
         case imageFileName
-        case screenBounds
+        case screenBoundsRect
     }
 }
 
