@@ -60,10 +60,11 @@ Our development roadmap includes the following milestones:
 2. ✅ **Screen recording and user action capturing** - Complete
 3. ✅ **Data storage system** - Complete
 4. 🔄 **UI Element Annotation** - In Progress
-   - Identify UI elements on screen during recording
-   - Add metadata and annotations to elements
-   - Link user actions with specific UI elements
-   - Improve accessibility data collection
+   - ✅ Basic accessibility data collection implemented
+   - ✅ UI element detection during mouse clicks
+   - ✅ UI element detection during keyboard input
+   - ⏳ Hierarchy and relationship tracking
+   - ⏳ Advanced element properties collection
 5. 🔄 **Export capabilities for ML training** - Partially Complete
    - ✅ Basic JSON export
    - ⏳ COCO format export for computer vision

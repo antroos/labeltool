@@ -4,9 +4,15 @@ All notable changes to the WeLabelDataRecorder project will be documented in thi
 
 ## [Unreleased] - Upcoming in 1.2.0
 
+### Added
+- Basic UI Element Annotation support
+  - New `UIElementInfo` implementation for accessibility information
+  - New `UIElementInteraction` model for tracking UI element interactions
+  - Integration with mouse clicks and keyboard inputs
+  - Automatic detection of UI elements during recording
+
 ### Planned Features
-- UI Element Annotation and Marking
-- Enhanced Accessibility API integration
+- Enhanced Accessibility API integration with hierarchy support
 - Improved UI element identification during recording
 - Metadata collection for UI elements
 - Link user interactions with specific UI elements
