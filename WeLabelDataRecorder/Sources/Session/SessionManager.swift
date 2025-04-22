@@ -10,12 +10,50 @@ class SessionManager {
     // Last completed session
     private(set) var lastSession: RecordingSession?
     
+    // Current project
+    private(set) var currentProject: Project?
+    
+    // All projects
+    private(set) var projects: [Project] = []
+    
+    // Start a new project
+    func createNewProject(name: String, description: String) -> Project {
+        // Create a new project
+        let project = Project(name: name, description: description)
+        currentProject = project
+        projects.append(project)
+        
+        print("Project created: \(project.id)")
+        
+        // Save the project to disk
+        saveProject(project)
+        
+        return project
+    }
+    
+    // Get the current project or create a default one if none exists
+    func getCurrentProject() -> Project {
+        if let project = currentProject {
+            return project
+        }
+        
+        // If there's no current project, create a default one
+        return createNewProject(name: "Untitled Project", description: "Created automatically")
+    }
+    
     // Start a new recording session
     func startNewSession() -> RecordingSession {
+        // Make sure we have a project
+        let project = getCurrentProject()
+        
         // Create a new session
-        let session = RecordingSession(id: UUID().uuidString, startTime: Date())
+        let session = RecordingSession(id: UUID().uuidString, startTime: Date(), projectId: project.id)
         currentSession = session
         print("Session started: \(session.id)")
+        
+        // Add session to project
+        project.addSession(session)
+        
         return session
     }
     
@@ -38,6 +76,11 @@ class SessionManager {
         
         // Clear current session
         currentSession = nil
+        
+        // Save the project since it now has a completed session
+        if let projectId = session.projectId, let project = findProject(by: projectId) {
+            saveProject(project)
+        }
         
         return session
     }
@@ -88,6 +131,136 @@ class SessionManager {
         } catch {
             print("Error saving session: \(error)")
         }
+    }
+    
+    // Save a project to disk
+    private func saveProject(_ project: Project) {
+        print("Saving project \(project.id) with \(project.sessions.count) sessions")
+        
+        do {
+            // Get documents directory
+            guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                print("Failed to get documents directory")
+                return
+            }
+            
+            // Create projects directory if it doesn't exist
+            let projectsDirectory = documentsDirectory.appendingPathComponent("WeLabelDataRecorder/Projects", isDirectory: true)
+            try FileManager.default.createDirectory(at: projectsDirectory, withIntermediateDirectories: true)
+            
+            // Create a file for this project
+            let projectFile = projectsDirectory.appendingPathComponent("\(project.id).json")
+            
+            // Encode the project
+            let encoder = JSONEncoder()
+            encoder.outputFormatting = .prettyPrinted
+            let data = try encoder.encode(project)
+            
+            // Write to disk
+            try data.write(to: projectFile)
+            print("Successfully saved project to: \(projectFile.path)")
+        } catch {
+            print("Error saving project: \(error)")
+        }
+    }
+    
+    // Find a project by ID
+    func findProject(by id: String) -> Project? {
+        // Check if it's the current project
+        if let current = currentProject, current.id == id {
+            return current
+        }
+        
+        // Check projects array
+        if let project = projects.first(where: { $0.id == id }) {
+            return project
+        }
+        
+        // Try to load from disk
+        do {
+            // Get documents directory
+            guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                return nil
+            }
+            
+            // Get the project file path
+            let projectFile = documentsDirectory.appendingPathComponent("WeLabelDataRecorder/Projects/\(id).json")
+            
+            // Check if file exists
+            if !FileManager.default.fileExists(atPath: projectFile.path) {
+                return nil
+            }
+            
+            // Load and decode the project
+            let data = try Data(contentsOf: projectFile)
+            let project = try JSONDecoder().decode(Project.self, from: data)
+            
+            // Add to projects array for future reference
+            projects.append(project)
+            
+            return project
+        } catch {
+            print("Error loading project \(id): \(error)")
+            return nil
+        }
+    }
+    
+    // Get all projects
+    func getAllProjects() -> [Project] {
+        var allProjects: [Project] = []
+        
+        // First add any projects we already have in memory
+        allProjects.append(contentsOf: projects)
+        
+        // Then try to load additional projects from disk
+        do {
+            // Get documents directory
+            guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
+                print("Failed to get documents directory")
+                return allProjects
+            }
+            
+            // Get the projects directory
+            let projectsDirectory = documentsDirectory.appendingPathComponent("WeLabelDataRecorder/Projects", isDirectory: true)
+            
+            // Check if directory exists
+            if !FileManager.default.fileExists(atPath: projectsDirectory.path) {
+                print("Projects directory doesn't exist yet")
+                return allProjects
+            }
+            
+            // Get all project files
+            let fileURLs = try FileManager.default.contentsOfDirectory(
+                at: projectsDirectory,
+                includingPropertiesForKeys: nil
+            ).filter { $0.pathExtension == "json" }
+            
+            print("DEBUG: Found \(fileURLs.count) project files")
+            
+            // Load each project
+            for fileURL in fileURLs {
+                let data = try Data(contentsOf: fileURL)
+                
+                do {
+                    let project = try JSONDecoder().decode(Project.self, from: data)
+                    
+                    // Check if we already have this project in memory
+                    if !allProjects.contains(where: { $0.id == project.id }) {
+                        allProjects.append(project)
+                    }
+                } catch {
+                    print("ERROR decoding project from \(fileURL.lastPathComponent): \(error)")
+                }
+            }
+            
+        } catch {
+            print("Error loading projects: \(error)")
+        }
+        
+        // Sort by creation date (newest first)
+        allProjects.sort { $0.creationDate > $1.creationDate }
+        
+        return allProjects
     }
     
     // Get all saved sessions
@@ -227,16 +400,41 @@ class SessionManager {
     }
 }
 
+// Project model for grouping recording sessions
+class Project: Codable {
+    let id: String
+    let name: String
+    let description: String
+    let creationDate: Date
+    var sessions: [RecordingSession] = []
+    
+    init(id: String = UUID().uuidString, name: String, description: String) {
+        self.id = id
+        self.name = name
+        self.description = description
+        self.creationDate = Date()
+    }
+    
+    // Add a session to this project
+    func addSession(_ session: RecordingSession) {
+        sessions.append(session)
+        // Update session's projectId
+        session.projectId = id
+    }
+}
+
 // Recording session model
 class RecordingSession: Codable {
     let id: String
     let startTime: Date
     var endTime: Date?
     var interactions: [AnyInteraction] = []
+    var projectId: String?
     
-    init(id: String, startTime: Date) {
+    init(id: String, startTime: Date, projectId: String? = nil) {
         self.id = id
         self.startTime = startTime
+        self.projectId = projectId
     }
     
     // Add an interaction to the session
@@ -404,6 +602,39 @@ struct AnyInteraction: Codable {
         } else {
             // Не выводим это сообщение, т.к. оно спамит лог при переборе типов
             // print("Type mismatch: trying to decode \(typeName) but actual type is \(interactionType)")
+            return nil
+        }
+    }
+    
+    // Дополнительный безопасный метод декодирования, который не печатает ошибки
+    func silentTryDecode<T: UserInteraction & Codable>(_ type: T.Type) -> T? {
+        guard let interactionType = self.interactionType else { return nil }
+        
+        let typeName = String(describing: type)
+        var typeMatches = false
+        
+        if typeName == "MouseClickInteraction" && interactionType == .mouseClick {
+            typeMatches = true
+        } else if typeName == "MouseMoveInteraction" && interactionType == .mouseMove {
+            typeMatches = true
+        } else if typeName == "MouseScrollInteraction" && interactionType == .mouseScroll {
+            typeMatches = true
+        } else if typeName == "KeyInteraction" && (interactionType == .keyDown || interactionType == .keyUp) {
+            typeMatches = true
+        } else if typeName == "ScreenshotInteraction" && interactionType == .screenshot {
+            typeMatches = true
+        } else if typeName == "UIElementInteraction" && interactionType == .uiElement {
+            typeMatches = true
+        }
+        
+        if typeMatches {
+            do {
+                return try JSONDecoder().decode(type, from: _data)
+            } catch {
+                // Не отображаем ошибки в логах, чтобы не спамить их
+                return nil
+            }
+        } else {
             return nil
         }
     }

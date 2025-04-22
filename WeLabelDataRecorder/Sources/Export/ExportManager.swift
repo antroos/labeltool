@@ -68,7 +68,7 @@ class ExportManager {
         var count = 0
         
         for interaction in session.interactions {
-            if interaction.decodeAsScreenshot() != nil {
+            if interaction.silentTryDecode(ScreenshotInteraction.self) != nil {
                 count += 1
             }
         }
@@ -186,7 +186,7 @@ class ExportManager {
         
         // Copy each screenshot referenced in the session
         for interaction in session.interactions {
-            if let screenshot = interaction.decodeAsScreenshot() {
+            if let screenshot = interaction.silentTryDecode(ScreenshotInteraction.self) {
                 let fileName = screenshot.imageFileName
                 
                 // Skip if we've already copied this file
