@@ -68,7 +68,7 @@ class ExportManager {
         var count = 0
         
         for interaction in session.interactions {
-            if let _ = interaction.decode() as ScreenshotInteraction? {
+            if interaction.decodeAsScreenshot() != nil {
                 count += 1
             }
         }
@@ -81,8 +81,8 @@ class ExportManager {
         var interactionsData: [[String: Any]] = []
         
         for interaction in session.interactions {
-            // Use the new type-safe decoding methods
-            if let mouseClick = interaction.decodeIfType(MouseClickInteraction.self) {
+            // Use type-safe decoding methods
+            if let mouseClick = interaction.decodeAsMouseClick() {
                 let data: [String: Any] = [
                     "type": "mouseClick",
                     "timestamp": mouseClick.timestamp.timeIntervalSince1970,
@@ -92,7 +92,7 @@ class ExportManager {
                     "clickCount": mouseClick.clickCount
                 ]
                 interactionsData.append(data)
-            } else if let mouseMove = interaction.decodeIfType(MouseMoveInteraction.self) {
+            } else if let mouseMove = interaction.decodeAsMouseMove() {
                 let data: [String: Any] = [
                     "type": "mouseMove",
                     "timestamp": mouseMove.timestamp.timeIntervalSince1970,
@@ -102,7 +102,7 @@ class ExportManager {
                     "toY": mouseMove.toPosition.y
                 ]
                 interactionsData.append(data)
-            } else if let mouseScroll = interaction.decodeIfType(MouseScrollInteraction.self) {
+            } else if let mouseScroll = interaction.decodeAsMouseScroll() {
                 let data: [String: Any] = [
                     "type": "mouseScroll",
                     "timestamp": mouseScroll.timestamp.timeIntervalSince1970,
@@ -112,7 +112,7 @@ class ExportManager {
                     "deltaY": mouseScroll.deltaY
                 ]
                 interactionsData.append(data)
-            } else if let key = interaction.decodeIfType(KeyInteraction.self) {
+            } else if let key = interaction.decodeAsKeyInteraction() {
                 let data: [String: Any] = [
                     "type": key.interactionType == .keyDown ? "keyDown" : "keyUp",
                     "timestamp": key.timestamp.timeIntervalSince1970,
@@ -121,7 +121,7 @@ class ExportManager {
                     "modifiers": key.modifiers.rawValue
                 ]
                 interactionsData.append(data)
-            } else if let screenshot = interaction.decodeIfType(ScreenshotInteraction.self) {
+            } else if let screenshot = interaction.decodeAsScreenshot() {
                 let data: [String: Any] = [
                     "type": "screenshot",
                     "timestamp": screenshot.timestamp.timeIntervalSince1970,
@@ -130,7 +130,7 @@ class ExportManager {
                     "height": screenshot.screenBounds.height
                 ]
                 interactionsData.append(data)
-            } else if let uiElement = interaction.decodeIfType(UIElementInteraction.self) {
+            } else if let uiElement = interaction.decodeAsUIElement() {
                 // Add UI element interaction export
                 let data: [String: Any] = [
                     "type": "uiElement",
@@ -142,8 +142,10 @@ class ExportManager {
                     "elementTitle": uiElement.elementInfo.title ?? ""
                 ]
                 interactionsData.append(data)
+            } else if let interactionType = interaction.interactionType {
+                print("WARNING: Unknown interaction type: \(interactionType)")
             } else {
-                print("WARNING: Unknown interaction type: \(interaction.interactionType)")
+                print("WARNING: Could not determine interaction type")
             }
         }
         
@@ -179,16 +181,36 @@ class ExportManager {
         
         let screenshotsSourceDir = documentsDirectory.appendingPathComponent("WeLabelDataRecorder/Screenshots", isDirectory: true)
         
+        // Track which files we've already copied to avoid duplicates
+        var copiedFiles = Set<String>()
+        
         // Copy each screenshot referenced in the session
         for interaction in session.interactions {
-            if let screenshot = interaction.decodeIfType(ScreenshotInteraction.self) {
-                let sourceURL = screenshotsSourceDir.appendingPathComponent(screenshot.imageFileName)
-                let destinationURL = directory.appendingPathComponent(screenshot.imageFileName)
+            if let screenshot = interaction.decodeAsScreenshot() {
+                let fileName = screenshot.imageFileName
+                
+                // Skip if we've already copied this file
+                if copiedFiles.contains(fileName) {
+                    print("Skipping duplicate screenshot: \(fileName)")
+                    continue
+                }
+                
+                let sourceURL = screenshotsSourceDir.appendingPathComponent(fileName)
+                let destinationURL = directory.appendingPathComponent(fileName)
                 
                 do {
+                    // Check if destination file exists and remove it first to avoid conflicts
+                    if FileManager.default.fileExists(atPath: destinationURL.path) {
+                        try FileManager.default.removeItem(at: destinationURL)
+                    }
+                    
                     try FileManager.default.copyItem(at: sourceURL, to: destinationURL)
+                    
+                    // Mark this file as copied
+                    copiedFiles.insert(fileName)
+                    print("Successfully copied screenshot: \(fileName)")
                 } catch {
-                    print("Error copying screenshot \(screenshot.imageFileName): \(error)")
+                    print("Error copying screenshot \(fileName): \(error)")
                     // Continue with other screenshots
                 }
             }

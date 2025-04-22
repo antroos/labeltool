@@ -191,10 +191,10 @@ class RecordingSession: Codable {
 // Type eraser for UserInteraction protocol
 struct AnyInteraction: Codable {
     private let _data: Data
-    private let _type: String
+    private let _interactionTypeValue: String
     
     init<T: UserInteraction & Codable>(_ interaction: T) {
-        self._type = String(describing: type(of: interaction))
+        self._interactionTypeValue = interaction.interactionType.rawValue
         
         do {
             self._data = try JSONEncoder().encode(interaction)
@@ -205,40 +205,86 @@ struct AnyInteraction: Codable {
         }
     }
     
-    // Get the interaction type stored in this container
-    var interactionType: String {
-        return _type
+    // Get the stored interaction type
+    var interactionType: InteractionType? {
+        return InteractionType(rawValue: _interactionTypeValue)
     }
     
-    // Check if this interaction is of a specific type before trying to decode
-    func isType<T: UserInteraction & Codable>(_ type: T.Type) -> Bool {
-        return self._type == String(describing: type)
+    // Type-safe decoding for each specific interaction type
+    func decodeAsMouseClick() -> MouseClickInteraction? {
+        guard interactionType == .mouseClick else { return nil }
+        return try? JSONDecoder().decode(MouseClickInteraction.self, from: _data)
     }
     
-    // Decode back to the original type (if possible)
+    func decodeAsMouseMove() -> MouseMoveInteraction? {
+        guard interactionType == .mouseMove else { return nil }
+        return try? JSONDecoder().decode(MouseMoveInteraction.self, from: _data)
+    }
+    
+    func decodeAsMouseScroll() -> MouseScrollInteraction? {
+        guard interactionType == .mouseScroll else { return nil }
+        return try? JSONDecoder().decode(MouseScrollInteraction.self, from: _data)
+    }
+    
+    func decodeAsKeyInteraction() -> KeyInteraction? {
+        guard interactionType == .keyDown || interactionType == .keyUp else { return nil }
+        return try? JSONDecoder().decode(KeyInteraction.self, from: _data)
+    }
+    
+    func decodeAsScreenshot() -> ScreenshotInteraction? {
+        guard interactionType == .screenshot else { return nil }
+        return try? JSONDecoder().decode(ScreenshotInteraction.self, from: _data)
+    }
+    
+    func decodeAsUIElement() -> UIElementInteraction? {
+        guard interactionType == .uiElement else { return nil }
+        return try? JSONDecoder().decode(UIElementInteraction.self, from: _data)
+    }
+    
+    // Legacy decode method for backwards compatibility
+    // This method is deprecated and will be removed in future
     func decode<T: UserInteraction & Codable>() -> T? {
-        // Only attempt to decode if the stored type matches the requested type
-        if !isType(T.self) {
-            // Types don't match, return nil without attempting decode
-            return nil
-        }
-        
+        // WARNING: This method is unsafe and will be removed in future
+        // Use specific decodeFunctions instead
         do {
             return try JSONDecoder().decode(T.self, from: _data)
         } catch {
-            print("ERROR decoding interaction of type \(_type) to \(T.self): \(error)")
+            print("ERROR decoding interaction of type \(_interactionTypeValue): \(error)")
             return nil
         }
     }
     
-    // Decode to a specific type only if the type matches
+    // Should be used only if you've verified the type first
     func decodeIfType<T: UserInteraction & Codable>(_ type: T.Type) -> T? {
-        guard isType(type) else { return nil }
+        guard let interactionType = self.interactionType else { return nil }
         
-        do {
-            return try JSONDecoder().decode(type, from: _data)
-        } catch {
-            print("ERROR decoding interaction of type \(_type): \(error)")
+        // Check if the requested type matches the stored type
+        let typeName = String(describing: type)
+        var typeMatches = false
+        
+        if typeName == "MouseClickInteraction" && interactionType == .mouseClick {
+            typeMatches = true
+        } else if typeName == "MouseMoveInteraction" && interactionType == .mouseMove {
+            typeMatches = true
+        } else if typeName == "MouseScrollInteraction" && interactionType == .mouseScroll {
+            typeMatches = true
+        } else if typeName == "KeyInteraction" && (interactionType == .keyDown || interactionType == .keyUp) {
+            typeMatches = true
+        } else if typeName == "ScreenshotInteraction" && interactionType == .screenshot {
+            typeMatches = true
+        } else if typeName == "UIElementInteraction" && interactionType == .uiElement {
+            typeMatches = true
+        }
+        
+        if typeMatches {
+            do {
+                return try JSONDecoder().decode(type, from: _data)
+            } catch {
+                print("ERROR decoding validated interaction: \(error)")
+                return nil
+            }
+        } else {
+            print("Type mismatch: trying to decode \(typeName) but actual type is \(interactionType)")
             return nil
         }
     }
