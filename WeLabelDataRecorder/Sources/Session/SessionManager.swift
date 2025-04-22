@@ -437,36 +437,6 @@ class RecordingSession: Codable {
         self.projectId = projectId
     }
     
-    // MARK: - Custom Codable Implementation
-    
-    enum CodingKeys: String, CodingKey {
-        case id
-        case startTime
-        case endTime
-        case interactions
-        case projectId
-    }
-    
-    // Custom encoding
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(id, forKey: .id)
-        try container.encode(startTime, forKey: .startTime)
-        try container.encodeIfPresent(endTime, forKey: .endTime)
-        try container.encode(interactions, forKey: .interactions) // Uses AnyInteraction's encode
-        try container.encodeIfPresent(projectId, forKey: .projectId)
-    }
-    
-    // Custom decoding
-    required init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        id = try container.decode(String.self, forKey: .id)
-        startTime = try container.decode(Date.self, forKey: .startTime)
-        endTime = try container.decodeIfPresent(Date.self, forKey: .endTime)
-        interactions = try container.decode([AnyInteraction].self, forKey: .interactions) // Uses AnyInteraction's init(from:)
-        projectId = try container.decodeIfPresent(String.self, forKey: .projectId)
-    }
-    
     // Add an interaction to the session
     func addInteraction<T: UserInteraction & Codable>(_ interaction: T) {
         print("DEBUG: Adding interaction of type \(type(of: interaction)), interactionType: \(interaction.interactionType)")
@@ -497,26 +467,11 @@ struct AnyInteraction: Codable {
         return InteractionType(rawValue: _interactionTypeValue)
     }
     
-    // MARK: - Custom Codable implementation
-    
-    // These keys must match with the keys used in Codable of all interaction types
+    // Rely on synthesized Codable conformance
+    // Enum CodingKeys below ensures the property names map to the desired JSON keys "data" and "type".
     enum CodingKeys: String, CodingKey {
         case _data = "data"
         case _interactionTypeValue = "type"
-    }
-    
-    // Custom encoding
-    func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
-        try container.encode(_data, forKey: ._data)
-        try container.encode(_interactionTypeValue, forKey: ._interactionTypeValue)
-    }
-    
-    // Custom decoding
-    init(from decoder: Decoder) throws {
-        let container = try decoder.container(keyedBy: CodingKeys.self)
-        _data = try container.decode(Data.self, forKey: ._data)
-        _interactionTypeValue = try container.decode(String.self, forKey: ._interactionTypeValue)
     }
     
     // MARK: - Type-safe decoding methods
@@ -587,84 +542,6 @@ struct AnyInteraction: Codable {
             return try JSONDecoder().decode(UIElementInteraction.self, from: _data)
         } catch {
             print("ERROR decoding UIElementInteraction: \(error)")
-            return nil
-        }
-    }
-    
-    // MARK: - Legacy methods
-
-    // Небезопасный метод, оставлен для обратной совместимости
-    // DEPRECATED: This will be removed in future versions
-    func decode<T: UserInteraction & Codable>() -> T? {
-        // Полностью отключаем этот небезопасный метод, всегда возвращая nil
-        print("WARNING: Legacy decode method called - this is deprecated")
-        return nil
-    }
-    
-    // Безопасная версия decode, оставлена для обратной совместимости
-    func decodeIfType<T: UserInteraction & Codable>(_ type: T.Type) -> T? {
-        guard let interactionType = self.interactionType else { return nil }
-        
-        let typeName = String(describing: type)
-        var typeMatches = false
-        
-        if typeName == "MouseClickInteraction" && interactionType == .mouseClick {
-            typeMatches = true
-        } else if typeName == "MouseMoveInteraction" && interactionType == .mouseMove {
-            typeMatches = true
-        } else if typeName == "MouseScrollInteraction" && interactionType == .mouseScroll {
-            typeMatches = true
-        } else if typeName == "KeyInteraction" && (interactionType == .keyDown || interactionType == .keyUp) {
-            typeMatches = true
-        } else if typeName == "ScreenshotInteraction" && interactionType == .screenshot {
-            typeMatches = true
-        } else if typeName == "UIElementInteraction" && interactionType == .uiElement {
-            typeMatches = true
-        }
-        
-        if typeMatches {
-            do {
-                return try JSONDecoder().decode(type, from: _data)
-            } catch {
-                print("ERROR decoding validated interaction: \(error)")
-                return nil
-            }
-        } else {
-            // Не выводим это сообщение, т.к. оно спамит лог при переборе типов
-            // print("Type mismatch: trying to decode \(typeName) but actual type is \(interactionType)")
-            return nil
-        }
-    }
-    
-    // Дополнительный безопасный метод декодирования, который не печатает ошибки
-    func silentTryDecode<T: UserInteraction & Codable>(_ type: T.Type) -> T? {
-        guard let interactionType = self.interactionType else { return nil }
-        
-        let typeName = String(describing: type)
-        var typeMatches = false
-        
-        if typeName == "MouseClickInteraction" && interactionType == .mouseClick {
-            typeMatches = true
-        } else if typeName == "MouseMoveInteraction" && interactionType == .mouseMove {
-            typeMatches = true
-        } else if typeName == "MouseScrollInteraction" && interactionType == .mouseScroll {
-            typeMatches = true
-        } else if typeName == "KeyInteraction" && (interactionType == .keyDown || interactionType == .keyUp) {
-            typeMatches = true
-        } else if typeName == "ScreenshotInteraction" && interactionType == .screenshot {
-            typeMatches = true
-        } else if typeName == "UIElementInteraction" && interactionType == .uiElement {
-            typeMatches = true
-        }
-        
-        if typeMatches {
-            do {
-                return try JSONDecoder().decode(type, from: _data)
-            } catch {
-                // Не отображаем ошибки в логах, чтобы не спамить их
-                return nil
-            }
-        } else {
             return nil
         }
     }
