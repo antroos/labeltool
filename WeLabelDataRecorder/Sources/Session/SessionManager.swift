@@ -437,6 +437,36 @@ class RecordingSession: Codable {
         self.projectId = projectId
     }
     
+    // MARK: - Custom Codable Implementation
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case startTime
+        case endTime
+        case interactions
+        case projectId
+    }
+    
+    // Custom encoding
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(startTime, forKey: .startTime)
+        try container.encodeIfPresent(endTime, forKey: .endTime)
+        try container.encode(interactions, forKey: .interactions) // Uses AnyInteraction's encode
+        try container.encodeIfPresent(projectId, forKey: .projectId)
+    }
+    
+    // Custom decoding
+    required init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(String.self, forKey: .id)
+        startTime = try container.decode(Date.self, forKey: .startTime)
+        endTime = try container.decodeIfPresent(Date.self, forKey: .endTime)
+        interactions = try container.decode([AnyInteraction].self, forKey: .interactions) // Uses AnyInteraction's init(from:)
+        projectId = try container.decodeIfPresent(String.self, forKey: .projectId)
+    }
+    
     // Add an interaction to the session
     func addInteraction<T: UserInteraction & Codable>(_ interaction: T) {
         print("DEBUG: Adding interaction of type \(type(of: interaction)), interactionType: \(interaction.interactionType)")
