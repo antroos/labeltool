@@ -205,12 +205,40 @@ struct AnyInteraction: Codable {
         }
     }
     
+    // Get the interaction type stored in this container
+    var interactionType: String {
+        return _type
+    }
+    
+    // Check if this interaction is of a specific type before trying to decode
+    func isType<T: UserInteraction & Codable>(_ type: T.Type) -> Bool {
+        return self._type == String(describing: type)
+    }
+    
     // Decode back to the original type (if possible)
     func decode<T: UserInteraction & Codable>() -> T? {
+        // Only attempt to decode if the stored type matches the requested type
+        if !isType(T.self) {
+            // Types don't match, return nil without attempting decode
+            return nil
+        }
+        
         do {
             return try JSONDecoder().decode(T.self, from: _data)
         } catch {
             print("ERROR decoding interaction of type \(_type) to \(T.self): \(error)")
+            return nil
+        }
+    }
+    
+    // Decode to a specific type only if the type matches
+    func decodeIfType<T: UserInteraction & Codable>(_ type: T.Type) -> T? {
+        guard isType(type) else { return nil }
+        
+        do {
+            return try JSONDecoder().decode(type, from: _data)
+        } catch {
+            print("ERROR decoding interaction of type \(_type): \(error)")
             return nil
         }
     }

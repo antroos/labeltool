@@ -81,8 +81,8 @@ class ExportManager {
         var interactionsData: [[String: Any]] = []
         
         for interaction in session.interactions {
-            // Try to decode each type of interaction
-            if let mouseClick = interaction.decode() as MouseClickInteraction? {
+            // Use the new type-safe decoding methods
+            if let mouseClick = interaction.decodeIfType(MouseClickInteraction.self) {
                 let data: [String: Any] = [
                     "type": "mouseClick",
                     "timestamp": mouseClick.timestamp.timeIntervalSince1970,
@@ -92,7 +92,7 @@ class ExportManager {
                     "clickCount": mouseClick.clickCount
                 ]
                 interactionsData.append(data)
-            } else if let mouseMove = interaction.decode() as MouseMoveInteraction? {
+            } else if let mouseMove = interaction.decodeIfType(MouseMoveInteraction.self) {
                 let data: [String: Any] = [
                     "type": "mouseMove",
                     "timestamp": mouseMove.timestamp.timeIntervalSince1970,
@@ -102,7 +102,7 @@ class ExportManager {
                     "toY": mouseMove.toPosition.y
                 ]
                 interactionsData.append(data)
-            } else if let mouseScroll = interaction.decode() as MouseScrollInteraction? {
+            } else if let mouseScroll = interaction.decodeIfType(MouseScrollInteraction.self) {
                 let data: [String: Any] = [
                     "type": "mouseScroll",
                     "timestamp": mouseScroll.timestamp.timeIntervalSince1970,
@@ -112,7 +112,7 @@ class ExportManager {
                     "deltaY": mouseScroll.deltaY
                 ]
                 interactionsData.append(data)
-            } else if let key = interaction.decode() as KeyInteraction? {
+            } else if let key = interaction.decodeIfType(KeyInteraction.self) {
                 let data: [String: Any] = [
                     "type": key.interactionType == .keyDown ? "keyDown" : "keyUp",
                     "timestamp": key.timestamp.timeIntervalSince1970,
@@ -121,7 +121,7 @@ class ExportManager {
                     "modifiers": key.modifiers.rawValue
                 ]
                 interactionsData.append(data)
-            } else if let screenshot = interaction.decode() as ScreenshotInteraction? {
+            } else if let screenshot = interaction.decodeIfType(ScreenshotInteraction.self) {
                 let data: [String: Any] = [
                     "type": "screenshot",
                     "timestamp": screenshot.timestamp.timeIntervalSince1970,
@@ -130,6 +130,20 @@ class ExportManager {
                     "height": screenshot.screenBounds.height
                 ]
                 interactionsData.append(data)
+            } else if let uiElement = interaction.decodeIfType(UIElementInteraction.self) {
+                // Add UI element interaction export
+                let data: [String: Any] = [
+                    "type": "uiElement",
+                    "timestamp": uiElement.timestamp.timeIntervalSince1970,
+                    "action": uiElement.interactionAction.rawValue,
+                    "x": uiElement.position.x,
+                    "y": uiElement.position.y,
+                    "elementRole": uiElement.elementInfo.role,
+                    "elementTitle": uiElement.elementInfo.title ?? ""
+                ]
+                interactionsData.append(data)
+            } else {
+                print("WARNING: Unknown interaction type: \(interaction.interactionType)")
             }
         }
         
@@ -167,7 +181,7 @@ class ExportManager {
         
         // Copy each screenshot referenced in the session
         for interaction in session.interactions {
-            if let screenshot = interaction.decode() as ScreenshotInteraction? {
+            if let screenshot = interaction.decodeIfType(ScreenshotInteraction.self) {
                 let sourceURL = screenshotsSourceDir.appendingPathComponent(screenshot.imageFileName)
                 let destinationURL = directory.appendingPathComponent(screenshot.imageFileName)
                 
