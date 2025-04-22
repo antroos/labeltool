@@ -64,7 +64,23 @@ class SessionManager {
             // Encode the session
             let encoder = JSONEncoder()
             encoder.outputFormatting = .prettyPrinted
+            
+            // Проверка типов взаимодействий перед сохранением
+            print("DEBUG SAVE: Session contains \(session.interactions.count) interactions:")
+            for (index, interaction) in session.interactions.enumerated() {
+                if let type = interaction.interactionType {
+                    print("DEBUG SAVE: Interaction \(index): type=\(type)")
+                } else {
+                    print("DEBUG SAVE: Interaction \(index): type=UNKNOWN")
+                }
+            }
+            
             let data = try encoder.encode(session)
+            
+            // DEBUG: Print first 200 chars of encoded session
+            if let jsonString = String(data: data, encoding: .utf8) {
+                print("DEBUG SAVE: First 200 chars of encoded session: \(jsonString.prefix(200))")
+            }
             
             // Write to disk
             try data.write(to: sessionFile)
@@ -76,19 +92,20 @@ class SessionManager {
     
     // Get all saved sessions
     func getAllSessions() -> [RecordingSession] {
-        // Return the last session if available
-        if let lastSession = lastSession {
-            print("SessionManager: Using cached lastSession \(lastSession.id) with \(lastSession.interactions.count) interactions")
-            return [lastSession]
-        } else {
-            print("SessionManager: No cached lastSession available")
-        }
+        var allSessions: [RecordingSession] = []
         
-        // Try to load sessions from disk
+        // First load sessions from disk
         do {
             // Get documents directory
             guard let documentsDirectory = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first else {
                 print("Failed to get documents directory")
+                
+                // Return last session from cache if available
+                if let lastSession = lastSession {
+                    print("SessionManager: Returning cached lastSession \(lastSession.id) with \(lastSession.interactions.count) interactions")
+                    return [lastSession]
+                }
+                
                 return []
             }
             
@@ -98,6 +115,13 @@ class SessionManager {
             // Check if directory exists
             if !FileManager.default.fileExists(atPath: sessionsDirectory.path) {
                 print("Sessions directory doesn't exist yet")
+                
+                // Return last session from cache if available
+                if let lastSession = lastSession {
+                    print("SessionManager: Returning cached lastSession \(lastSession.id) with \(lastSession.interactions.count) interactions")
+                    return [lastSession]
+                }
+                
                 return []
             }
             
@@ -107,21 +131,55 @@ class SessionManager {
                 includingPropertiesForKeys: nil
             ).filter { $0.pathExtension == "json" }
             
-            var sessions: [RecordingSession] = []
+            print("DEBUG: Found \(fileURLs.count) session files")
+            for fileURL in fileURLs {
+                print("DEBUG: Found session file: \(fileURL.lastPathComponent)")
+            }
             
             // Load each session
             for fileURL in fileURLs {
+                print("DEBUG: Loading session from \(fileURL.lastPathComponent)")
                 let data = try Data(contentsOf: fileURL)
-                let session = try JSONDecoder().decode(RecordingSession.self, from: data)
-                sessions.append(session)
+                
+                // Print what we're about to decode
+                if let jsonStr = String(data: data, encoding: .utf8) {
+                    print("DEBUG: First 100 chars of JSON: \(String(jsonStr.prefix(100)))")
+                }
+                
+                let decoder = JSONDecoder()
+                do {
+                    let session = try decoder.decode(RecordingSession.self, from: data)
+                    print("DEBUG: Successfully decoded session \(session.id) with \(session.interactions.count) interactions")
+                    allSessions.append(session)
+                } catch {
+                    print("ERROR decoding session from \(fileURL.lastPathComponent): \(error)")
+                }
             }
             
-            print("Loaded \(sessions.count) sessions from disk")
-            return sessions
+            print("Loaded \(allSessions.count) sessions from disk")
         } catch {
             print("Error loading sessions: \(error)")
-            return []
         }
+        
+        // Add the current cached session if it's not already in the list
+        if let lastSession = lastSession {
+            print("SessionManager: Checking if cached lastSession \(lastSession.id) should be added")
+            
+            // Check if this session is already loaded from disk
+            let sessionExists = allSessions.contains { $0.id == lastSession.id }
+            
+            if !sessionExists {
+                print("SessionManager: Adding cached lastSession \(lastSession.id) to the list")
+                allSessions.append(lastSession)
+            } else {
+                print("SessionManager: Session \(lastSession.id) already exists in the list")
+            }
+        }
+        
+        // Sort sessions by start time (newest first)
+        allSessions.sort { $0.startTime > $1.startTime }
+        
+        return allSessions
     }
     
     // Get a specific session by ID
@@ -183,6 +241,7 @@ class RecordingSession: Codable {
     
     // Add an interaction to the session
     func addInteraction<T: UserInteraction & Codable>(_ interaction: T) {
+        print("DEBUG: Adding interaction of type \(type(of: interaction)), interactionType: \(interaction.interactionType)")
         let anyInteraction = AnyInteraction(interaction)
         interactions.append(anyInteraction)
     }
