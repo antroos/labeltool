@@ -6,18 +6,90 @@ class ScreenCapture: NSObject, AVCaptureFileOutputRecordingDelegate {
     private var outputURL: URL?
     private var captureSession: AVCaptureSession?
     private var captureOutput: AVCaptureMovieFileOutput?
+    private var lastScreenshotImage: NSImage? // Кэш для последнего скриншота
+    private let savePath = URL(fileURLWithPath: NSTemporaryDirectory()).appendingPathComponent("WeLabelScreenshots")
     
-    // Function to capture a screenshot
+    override init() {
+        super.init()
+        
+        // Create temporary directory if it doesn't exist
+        try? FileManager.default.createDirectory(at: savePath, withIntermediateDirectories: true)
+    }
+    
+    // Функция для захвата скриншота
     func captureScreenshot() -> NSImage? {
-        // CGMainDisplayID doesn't return an optional, so don't use guard let
+        // Если у нас есть кэшированный скриншот, возвращаем его
+        if let lastImage = lastScreenshotImage {
+            // Запускаем новый захват в фоне для следующего вызова
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                self?.captureNewScreenshot()
+            }
+            return lastImage
+        }
+        
+        // Нет кэшированного скриншота, пробуем сначала системную команду
+        if let systemScreenshot = captureScreenshotWithSystemCommand() {
+            lastScreenshotImage = systemScreenshot
+            return systemScreenshot
+        }
+        
+        // Если системная команда не сработала, используем Core Graphics
+        return captureScreenshotWithCoreGraphics()
+    }
+    
+    // Захватить новый скриншот для обновления кэша
+    private func captureNewScreenshot() {
+        if let systemScreenshot = captureScreenshotWithSystemCommand() {
+            lastScreenshotImage = systemScreenshot
+        } else if let cgScreenshot = captureScreenshotWithCoreGraphics() {
+            lastScreenshotImage = cgScreenshot
+        }
+    }
+    
+    // Использование системной команды screencapture для создания скриншота
+    private func captureScreenshotWithSystemCommand() -> NSImage? {
+        // Генерируем временное имя файла
+        let timestamp = Int(Date().timeIntervalSince1970)
+        let filename = "temp_screenshot_\(timestamp).png"
+        let outputPath = savePath.appendingPathComponent(filename).path
+        
+        // Подготавливаем команду
+        let task = Process()
+        task.launchPath = "/usr/sbin/screencapture"
+        
+        // Аргументы для тихого создания скриншота без звука
+        task.arguments = ["-x", outputPath]
+        
+        do {
+            try task.run()
+            task.waitUntilExit()
+            
+            if task.terminationStatus == 0 {
+                // Прочитаем файл как изображение
+                if let image = NSImage(contentsOfFile: outputPath) {
+                    // Удалим временный файл после успешного чтения
+                    try? FileManager.default.removeItem(atPath: outputPath)
+                    return image
+                }
+            }
+            
+            print("screencapture завершился с кодом: \(task.terminationStatus)")
+            return nil
+        } catch {
+            print("Ошибка запуска screencapture: \(error)")
+            return nil
+        }
+    }
+    
+    // Захват скриншота с помощью Core Graphics (запасной метод)
+    private func captureScreenshotWithCoreGraphics() -> NSImage? {
         let displayID = CGMainDisplayID()
         
         guard let image = CGDisplayCreateImage(displayID) else {
-            print("Failed to create image from display")
+            print("Не удалось создать изображение с дисплея")
             return nil
         }
         
-        // Use image.width and image.height instead of CGImageGetWidth/Height
         let nsImage = NSImage(cgImage: image, size: NSSize(width: image.width, height: image.height))
         return nsImage
     }
@@ -102,6 +174,10 @@ class ScreenCapture: NSObject, AVCaptureFileOutputRecordingDelegate {
         captureSession?.stopRunning()
         captureSession = nil
         outputURL = nil
+        lastScreenshotImage = nil // Очищаем кэш
+        
+        // Удаляем временные файлы
+        try? FileManager.default.removeItem(at: savePath)
     }
     
     // MARK: - AVCaptureFileOutputRecordingDelegate

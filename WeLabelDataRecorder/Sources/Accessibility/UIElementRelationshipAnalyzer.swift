@@ -272,39 +272,49 @@ class UIElementRelationshipAnalyzer {
         return filteredByDistance.isEmpty ? nil : filteredByDistance
     }
     
-    /// Check if two identifiers are related (common prefix, suffix, or pattern)
+    // MARK: - Helper Methods for comparing identifiers and titles
+    
+    /// Check if two identifiers are related (share common prefix/suffix or pattern)
     private func areIdentifiersRelated(_ id1: String, _ id2: String) -> Bool {
-        // Common prefix (like "header_title" and "header_subtitle")
-        let components1 = id1.components(separatedBy: ["_", "-", "."])
-        let components2 = id2.components(separatedBy: ["_", "-", "."])
-        
-        if components1.count > 1 && components2.count > 1 {
-            if components1[0] == components2[0] {
+        // Common prefix (e.g., "login_username" and "login_password")
+        let commonPrefixLength = min(id1.count, id2.count) / 2
+        if commonPrefixLength > 3 {
+            let prefix1 = id1.prefix(commonPrefixLength)
+            let prefix2 = id2.prefix(commonPrefixLength)
+            if prefix1 == prefix2 {
                 return true
             }
         }
         
-        // Sequential identifiers (like "item_1" and "item_2")
-        let pattern = #"^(.*?)(\d+)$"#
-        if let regex = try? NSRegularExpression(pattern: pattern) {
-            let range1 = NSRange(id1.startIndex..<id1.endIndex, in: id1)
-            let range2 = NSRange(id2.startIndex..<id2.endIndex, in: id2)
+        // Common suffix (e.g., "username_field" and "password_field")
+        let commonSuffixLength = min(id1.count, id2.count) / 2
+        if commonSuffixLength > 3 {
+            let suffix1 = id1.suffix(commonSuffixLength)
+            let suffix2 = id2.suffix(commonSuffixLength)
+            if suffix1 == suffix2 {
+                return true
+            }
+        }
+        
+        // Pattern matching (e.g., "btn_1" and "btn_2" or "field1" and "field2")
+        let pattern = #"^([a-z]+)([0-9]+)$"#
+        let regex = try? NSRegularExpression(pattern: pattern, options: [.caseInsensitive])
+        
+        if let regex = regex,
+           let match1 = regex.firstMatch(in: id1, options: [], range: NSRange(location: 0, length: id1.count)),
+           let match2 = regex.firstMatch(in: id2, options: [], range: NSRange(location: 0, length: id2.count)),
+           match1.numberOfRanges > 1 && match2.numberOfRanges > 1 {
             
-            if let match1 = regex.firstMatch(in: id1, range: range1),
-               let match2 = regex.firstMatch(in: id2, range: range2),
-               match1.numberOfRanges > 2 && match2.numberOfRanges > 2 {
+            let prefix1Range = match1.range(at: 1)
+            let prefix2Range = match2.range(at: 1)
+            
+            if let prefixRange1 = Range(prefix1Range, in: id1),
+               let prefixRange2 = Range(prefix2Range, in: id2) {
+                let prefix1 = id1[prefixRange1]
+                let prefix2 = id2[prefixRange2]
                 
-                let prefixRange1 = match1.range(at: 1)
-                let prefixRange2 = match2.range(at: 1)
-                
-                if let prefix1Range = Range(prefixRange1, in: id1),
-                   let prefix2Range = Range(prefixRange2, in: id2) {
-                    let prefix1 = String(id1[prefix1Range])
-                    let prefix2 = String(id2[prefix2Range])
-                    
-                    if prefix1 == prefix2 {
-                        return true
-                    }
+                if prefix1 == prefix2 {
+                    return true
                 }
             }
         }
@@ -312,51 +322,37 @@ class UIElementRelationshipAnalyzer {
         return false
     }
     
-    /// Check if two titles are related
+    /// Check if two titles suggest a relationship (similar patterns or common terms)
     private func areTitlesRelated(_ title1: String, _ title2: String) -> Bool {
-        // Remove common words that don't indicate relationship
-        let filteredTitle1 = removeCommonWords(from: title1)
-        let filteredTitle2 = removeCommonWords(from: title2)
-        
-        // If either is empty after filtering, they're probably not related
-        if filteredTitle1.isEmpty || filteredTitle2.isEmpty {
-            return false
+        // If either is contained within the other (e.g., "Email" and "Email Address")
+        if title1.contains(title2) || title2.contains(title1) {
+            return true
         }
         
-        // Check for common prefix words
-        let words1 = filteredTitle1.components(separatedBy: .whitespaces)
-        let words2 = filteredTitle2.components(separatedBy: .whitespaces)
+        // Look for common terms that suggest relationship (e.g., "First Name" and "Last Name")
+        let relatedTermPairs = [
+            ["first", "last"],
+            ["name", "email"],
+            ["username", "password"],
+            ["start", "end"],
+            ["min", "max"],
+            ["open", "close"],
+            ["save", "cancel"],
+            ["accept", "decline"],
+            ["on", "off"],
+            ["yes", "no"]
+        ]
         
-        if !words1.isEmpty && !words2.isEmpty {
-            // Check if they share the first word
-            if words1[0] == words2[0] {
-                return true
-            }
-            
-            // Check if one is a substring of the other
-            if filteredTitle1.contains(filteredTitle2) || filteredTitle2.contains(filteredTitle1) {
-                return true
-            }
-            
-            // Check for at least 50% word overlap
-            let set1 = Set(words1)
-            let set2 = Set(words2)
-            let intersection = set1.intersection(set2)
-            let smallerCount = min(set1.count, set2.count)
-            
-            if smallerCount > 0 && Double(intersection.count) / Double(smallerCount) >= 0.5 {
+        let lowercaseTitle1 = title1.lowercased()
+        let lowercaseTitle2 = title2.lowercased()
+        
+        for pair in relatedTermPairs {
+            if (lowercaseTitle1.contains(pair[0]) && lowercaseTitle2.contains(pair[1])) ||
+               (lowercaseTitle1.contains(pair[1]) && lowercaseTitle2.contains(pair[0])) {
                 return true
             }
         }
         
         return false
-    }
-    
-    /// Remove common words that don't help identify relationship
-    private func removeCommonWords(from text: String) -> String {
-        let commonWords = ["the", "a", "an", "of", "in", "on", "at", "by", "with", "and", "or", "for", "to", "from"]
-        var words = text.lowercased().components(separatedBy: .whitespaces)
-        words = words.filter { !commonWords.contains($0) }
-        return words.joined(separator: " ")
     }
 } 
