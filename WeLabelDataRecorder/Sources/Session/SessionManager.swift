@@ -210,6 +210,28 @@ struct AnyInteraction: Codable {
         return InteractionType(rawValue: _interactionTypeValue)
     }
     
+    // MARK: - Custom Codable implementation
+    
+    // These keys must match with the keys used in Codable of all interaction types
+    enum CodingKeys: String, CodingKey {
+        case _data = "data"
+        case _interactionTypeValue = "type"
+    }
+    
+    // Custom encoding
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(_data, forKey: ._data)
+        try container.encode(_interactionTypeValue, forKey: ._interactionTypeValue)
+    }
+    
+    // Custom decoding
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        _data = try container.decode(Data.self, forKey: ._data)
+        _interactionTypeValue = try container.decode(String.self, forKey: ._interactionTypeValue)
+    }
+    
     // MARK: - Type-safe decoding methods
     
     // Пытается декодировать взаимодействие определенного типа, только если совпадает хранимый тип
