@@ -35,7 +35,7 @@ struct CodableRect: Codable {
 }
 
 // Base protocol for all user interactions
-protocol UserInteraction {
+protocol UserInteraction: Codable {
     var timestamp: Date { get }
     var interactionType: InteractionType { get }
 }
